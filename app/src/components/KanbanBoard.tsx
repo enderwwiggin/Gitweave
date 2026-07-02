@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   GitBranch, Calendar, GripVertical, Filter, User,
-  ArrowRightLeft, X, FolderKanban, Lock, Unlock,
+  ArrowRightLeft, X, FolderKanban, Lock, Unlock, Pencil, Save,
 } from 'lucide-react';
 import {
-  tasks as initialTasks, projects, teamMembers, getProjectColor,
+  tasks as initialTasks, projects, getProjectColor,
 } from '@/data/mockData';
 import { usePermission } from '@/hooks/usePermission';
+import { useAuth } from '@/hooks/useAuth';
 import type { Task, AssignmentHistory, TeamMember } from '@/types';
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
@@ -53,13 +54,14 @@ function PermissionBadge({ canEdit, isOwner }: { canEdit: boolean; isOwner: bool
   );
 }
 
-function ReassignModal({ task, onClose, onReassign }: {
+function ReassignModal({ task, onClose, onReassign, allMembers }: {
   task: Task; onClose: () => void;
   onReassign: (taskId: string, newAssignee: TeamMember, reason: string) => void;
+  allMembers: TeamMember[];
 }) {
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [reason, setReason] = useState('');
-  const availableMembers = teamMembers.filter((m) => m.id !== task.assignee.id && m.userRole === 'member');
+  const availableMembers = allMembers.filter((m) => m.id !== task.assignee.id && m.userRole === 'member');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -100,7 +102,7 @@ function ReassignModal({ task, onClose, onReassign }: {
             className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
         </div>
         <button onClick={() => {
-          const m = teamMembers.find((tm) => tm.id === selectedMember);
+          const m = allMembers.find((tm) => tm.id === selectedMember);
           if (m) { onReassign(task.id, m, reason || '任务移交'); onClose(); }
         }} disabled={!selectedMember}
           className="w-full h-10 rounded-lg bg-[#f59e0b] hover:bg-[#f59e0b]/80 disabled:opacity-40 text-[#050507] text-sm font-semibold transition-colors flex items-center justify-center gap-2">
@@ -111,12 +113,83 @@ function ReassignModal({ task, onClose, onReassign }: {
   );
 }
 
-function TaskCard({ task, index, onDragStart, onReassign }: {
+function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description);
+  const [tagsInput, setTagsInput] = useState(task.tags.join(', '));
+  const { userId } = usePermission();
+  const isOwner = task.assignee.id === userId || task.editors.includes(userId);
+
+  if (!isOwner) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="glass-panel rounded-lg p-6 w-96 max-w-[90vw] text-center">
+          <Lock className="w-8 h-8 text-[#969699] mx-auto mb-3" />
+          <p className="text-sm text-[#969699]">你无权编辑此任务</p>
+          <button onClick={onClose} className="mt-4 px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">关闭</button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSave = () => {
+    const detail = {
+      taskId: task.id,
+      title: title.trim() || task.title,
+      description: description.trim(),
+      tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
+    };
+    window.dispatchEvent(new CustomEvent('task-edit', { detail }));
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="glass-panel rounded-lg p-6 w-[440px] max-w-[90vw]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-[#f4f4f5] flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-[#10b981]" />编辑任务
+          </h3>
+          <button onClick={onClose} className="text-[#969699] hover:text-[#f4f4f5]"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-[#969699] mb-1.5 block">任务标题</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+              className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50" />
+          </div>
+          <div>
+            <label className="text-xs text-[#969699] mb-1.5 block">任务描述</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
+              className="w-full px-3 py-2 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50 resize-none" />
+          </div>
+          <div>
+            <label className="text-xs text-[#969699] mb-1.5 block">标签（逗号分隔）</label>
+            <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
+              placeholder="UMI, 测试, 交付"
+              className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50 font-mono" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className="px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">取消</button>
+          <button onClick={handleSave}
+            className="flex items-center gap-1.5 px-4 py-2 rounded bg-[#10b981] hover:bg-[#10b981]/80 text-white text-xs font-medium">
+            <Save className="w-3.5 h-3.5" />保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
   task: Task; index: number;
   onDragStart: (e: React.DragEvent, task: Task) => void;
   onReassign: (taskId: string, newAssignee: TeamMember, reason: string) => void;
+  allMembers: TeamMember[];
 }) {
   const [showReassign, setShowReassign] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const { userId, getTaskPermission } = usePermission();
   const perm = getTaskPermission(task.assignee.id, task.editors);
   const isOwner = task.assignee.id === userId;
@@ -151,11 +224,18 @@ function TaskCard({ task, index, onDragStart, onReassign }: {
                 </div>
                 <span className="text-xs text-[#969699]">{task.assignee.name}</span>
               </div>
-              {perm.canTransfer && (
-                <button onClick={() => setShowReassign(true)} className="p-1 rounded hover:bg-[#1f1f22] text-[#969699] hover:text-[#f59e0b] transition-colors" title="移交任务">
-                  <ArrowRightLeft className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className="flex items-center gap-1">
+                {perm.canEdit && (
+                  <button onClick={() => setShowEdit(true)} className="p-1 rounded hover:bg-[#1f1f22] text-[#969699] hover:text-[#10b981] transition-colors" title="编辑任务">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {perm.canTransfer && (
+                  <button onClick={() => setShowReassign(true)} className="p-1 rounded hover:bg-[#1f1f22] text-[#969699] hover:text-[#f59e0b] transition-colors" title="移交任务">
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
             <TransferMini history={task.transferHistory} />
             {task.tags.length > 0 && (
@@ -168,18 +248,33 @@ function TaskCard({ task, index, onDragStart, onReassign }: {
           </div>
         </div>
       </div>
-      {showReassign && <ReassignModal task={task} onClose={() => setShowReassign(false)} onReassign={onReassign} />}
+      {showReassign && <ReassignModal task={task} onClose={() => setShowReassign(false)} onReassign={onReassign} allMembers={allMembers} />}
+      {showEdit && <TaskEditModal task={task} onClose={() => setShowEdit(false)} />}
     </>
   );
 }
 
 export default function KanbanBoard() {
+  const { users } = useAuth();
   const [taskList, setTaskList] = useState<Task[]>(initialTasks);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string | null>(null);
-  const memberList = teamMembers.filter((m) => m.userRole === 'member');
+  const memberList = users.filter((m) => m.userRole === 'member');
 
+  // 监听 TaskEditModal 发出的编辑事件
+  useEffect(() => {
+    const onEdit = (e: Event) => {
+      const { taskId, title, description, tags } = (e as CustomEvent).detail as {
+        taskId: string; title: string; description: string; tags: string[];
+      };
+      setTaskList((prev) => prev.map((t) =>
+        t.id === taskId ? { ...t, title, description, tags, updatedAt: '2026-07-01' } : t
+      ));
+    };
+    window.addEventListener('task-edit', onEdit);
+    return () => window.removeEventListener('task-edit', onEdit);
+  }, []);
   const filteredTasks = taskList.filter((t) => {
     const matchesProject = !filterProject || t.projectId === filterProject;
     const matchesMember = !filterMember || t.assignee.id === filterMember;
@@ -287,7 +382,7 @@ export default function KanbanBoard() {
               <div className="flex-1 overflow-y-auto scrollbar-thin p-3">
                 {columnTasks.map((task, index) => (
                   <div key={task.id} onDragEnd={handleDragEnd}>
-                    <TaskCard task={task} index={index} onDragStart={handleDragStart} onReassign={handleReassign} />
+                    <TaskCard task={task} index={index} onDragStart={handleDragStart} onReassign={handleReassign} allMembers={users} />
                   </div>
                 ))}
                 {columnTasks.length === 0 && (

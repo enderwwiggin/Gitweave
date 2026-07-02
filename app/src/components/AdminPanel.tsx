@@ -9,11 +9,12 @@ import {
   AlertTriangle,
   X,
 } from 'lucide-react';
-import { teamMembers, adminMembers, regularMembers } from '@/data/mockData';
+import { useAuth } from '@/hooks/useAuth';
 import type { TeamMember } from '@/types';
 
 export default function AdminPanel() {
-  const [members, setMembers] = useState<TeamMember[]>(teamMembers);
+  const { users } = useAuth();
+  const [members, setMembers] = useState<TeamMember[]>(users);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -86,11 +87,11 @@ export default function AdminPanel() {
           <div className="text-xs text-[#969699] mt-1">在职人员</div>
         </div>
         <div className="glass-panel rounded-lg p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-[#dc2626]">{adminMembers.length}</div>
+          <div className="text-2xl font-mono font-bold text-[#dc2626]">{members.filter((m) => m.userRole === 'admin' && m.status === 'active').length}</div>
           <div className="text-xs text-[#969699] mt-1">管理员</div>
         </div>
         <div className="glass-panel rounded-lg p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-[#1868d6]">{regularMembers.length}</div>
+          <div className="text-2xl font-mono font-bold text-[#1868d6]">{activeList.filter((m) => m.userRole === 'member').length}</div>
           <div className="text-xs text-[#969699] mt-1">普通成员</div>
         </div>
         <div className="glass-panel rounded-lg p-4 text-center">
