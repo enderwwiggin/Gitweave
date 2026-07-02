@@ -19,7 +19,6 @@ interface AuthContextValue {
     name: string;
     phone: string;
     email: string;
-    idCard: string;
     password: string;
     confirmPassword: string;
     code: string;
@@ -84,22 +83,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [users]);
 
   const register = useCallback((data: {
-    name: string; phone: string; email: string; idCard: string;
+    name: string; phone: string; email: string;
     password: string; confirmPassword: string; code: string;
   }): { ok: boolean; error?: string } => {
-    const { name, phone, email, idCard, password, confirmPassword, code } = data;
+    const { name, phone, email, password, confirmPassword, code } = data;
 
     if (!name.trim()) return { ok: false, error: '请输入真实姓名' };
     if (!/^1\d{10}$/.test(phone.trim())) return { ok: false, error: '请输入有效的 11 位手机号' };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return { ok: false, error: '请输入有效的邮箱' };
-    if (idCard.trim().length < 6) return { ok: false, error: '请输入有效的身份证号' };
     if (password.length < 6) return { ok: false, error: '密码至少 6 位' };
     if (password !== confirmPassword) return { ok: false, error: '两次密码不一致' };
 
-    // 验证码 = 身份证后6位 + 手机号后4位
-    const expectedCode = idCard.trim().slice(-6) + phone.trim().slice(-4);
+    // 验证码 = 手机号后4位
+    const expectedCode = phone.trim().slice(-4);
     if (code.trim() !== expectedCode) {
-      return { ok: false, error: `验证码不正确（应为身份证后6位+手机号后4位：${expectedCode}）` };
+      return { ok: false, error: `验证码不正确（应为手机号后4位：${expectedCode}）` };
     }
 
     if (users.some((m) => m.phone === phone.trim())) return { ok: false, error: '该手机号已注册' };
@@ -117,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (matched) {
       newPool = users.map((m) =>
         m.id === matched.id
-          ? { ...m, phone: phone.trim(), password, email: email.trim(), idCard: idCard.trim() }
+          ? { ...m, phone: phone.trim(), password, email: email.trim() }
           : m
       );
     } else {
@@ -126,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role, initials, color, userRole,
         status: 'active',
         joinedAt: new Date().toISOString().split('T')[0],
-        phone: phone.trim(), password, email: email.trim(), idCard: idCard.trim(),
+        phone: phone.trim(), password, email: email.trim(),
       };
       newPool = [...users, newMember];
     }
