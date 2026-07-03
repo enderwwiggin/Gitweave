@@ -5,10 +5,11 @@ import {
   FolderKanban, ArrowRightLeft, Shield, Upload,
 } from 'lucide-react';
 import {
-  teamMembers, projects, tasks, issues, getProjectColor,
+  teamMembers, tasks, issues, getProjectColor,
 } from '@/data/mockData';
 import type { TeamMember } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjects } from '@/hooks/useProjects';
 import GitGraph from './GitGraph';
 import KanbanBoard from './KanbanBoard';
 import IssueTracker from './IssueTracker';
@@ -81,6 +82,7 @@ function TeamView() {
 }
 
 function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const { projects } = useProjects();
   // 只显示进行中（active）的项目
   const projectStats = projects
     .filter((p) => p.status === 'active')
@@ -95,7 +97,6 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
     <div className="h-full flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-4">
         {projectStats.map((p, i) => {
-          const progress = p.taskCount > 0 ? Math.round((p.doneCount / p.taskCount) * 100) : 0;
           return (
             <div key={p.id} className="glass-panel rounded-lg p-4 fade-in-up cursor-pointer hover:border-[#1868d6]/30 transition-colors"
               style={{ animationDelay: `${i * 80}ms` }} onClick={() => onNavigate('board')}>
@@ -104,15 +105,6 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 <h3 className="text-sm font-semibold text-[#f4f4f5]">{p.name}</h3>
               </div>
               <p className="text-xs text-[#969699] mb-3 line-clamp-1">{p.description}</p>
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-[#969699]">进度</span>
-                  <span className="text-[10px] font-mono text-[#10b981]">{progress}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-[#1f1f22] overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: getProjectColor(p.id) }} />
-                </div>
-              </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div><div className="text-sm font-mono font-bold text-[#f4f4f5]">{p.taskCount}</div><div className="text-[10px] text-[#969699]">任务</div></div>
                 <div><div className="text-sm font-mono font-bold text-[#d7244b]">{p.issueCount}</div><div className="text-[10px] text-[#969699]">待修复</div></div>

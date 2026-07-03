@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { GitCommit, ArrowRight, Clock, Filter } from 'lucide-react';
-import { getTransferNodes, projects, teamMembers, getProjectColor } from '@/data/mockData';
+import { getTransferNodes, teamMembers, getProjectColor } from '@/data/mockData';
+import { useProjects } from '@/hooks/useProjects';
 
 export default function TransferGraph() {
   const allNodes = useMemo(() => getTransferNodes(), []);
+  const { projects } = useProjects();
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 

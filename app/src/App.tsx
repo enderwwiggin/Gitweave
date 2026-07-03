@@ -4,6 +4,7 @@ import HeroStats from './components/HeroStats';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ProjectsProvider } from './hooks/useProjects';
 
 function AppInner() {
   const { user } = useAuth();
@@ -23,7 +24,9 @@ function AppInner() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppInner />
+      <ProjectsProvider>
+        <AppInner />
+      </ProjectsProvider>
     </AuthProvider>
   );
 }

@@ -13,16 +13,18 @@ import {
   Loader2,
   Paperclip,
 } from 'lucide-react';
-import { projects, getProjectColor } from '@/data/mockData';
+import { getProjectColor } from '@/data/mockData';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
 import type { FileVersion } from '@/types';
 import { backendUrl, fetchCommits, createCommit, fileToBase64, type AttachmentPayload } from '@/lib/backend';
+import { useProjects } from '@/hooks/useProjects';
 
 export default function CodeVersion() {
   const { getCodePermission } = usePermission();
   const perm = getCodePermission();
   const { user, users } = useAuth();
+  const { projects } = useProjects();
   const isAdmin = user?.userRole === 'admin';
 
   const [commits, setCommits] = useState<FileVersion[]>([]);

@@ -610,7 +610,12 @@ export function getProjectColor(id: string): string {
     p1: '#1868d6', p2: '#10b981', p3: '#d7244b', p4: '#f59e0b',
     p5: '#8b5cf6', p6: '#06b6d4', p7: '#e87940',
   };
-  return colors[id] || '#969699';
+  if (colors[id]) return colors[id];
+  // 新增项目：按 id 稳定哈希取调色板色，保证各处颜色一致
+  const palette = ['#1868d6', '#10b981', '#d7244b', '#f59e0b', '#8b5cf6', '#06b6d4', '#e87940', '#ec4899', '#14b8a6', '#eab308'];
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
 }
 
 // 移交节点数据

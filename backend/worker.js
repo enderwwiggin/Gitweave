@@ -33,18 +33,27 @@ function json(data, env, status = 200) {
   });
 }
 
-// 校验请求是否来自管理员：比对登录账号密码与 ADMIN_USERS（name->password）
-// 名称/密码可能含中文或特殊字符，前端用 encodeURIComponent 编码，这里解码
-function isAdmin(env, request) {
+// 用 TEAM_USERS（{name:{password,role}}）校验登录账号
+// 名称/密码可能含中文，前端用 encodeURIComponent 编码，这里解码
+function authUser(env, request) {
   let users;
   try {
-    users = JSON.parse(env.ADMIN_USERS || '{}');
+    users = JSON.parse(env.TEAM_USERS || '{}');
   } catch {
     users = {};
   }
   const name = decodeURIComponent(request.headers.get('X-Auth-User') || '');
   const pass = decodeURIComponent(request.headers.get('X-Auth-Pass') || '');
-  return !!name && users[name] === pass;
+  const u = name ? users[name] : null;
+  if (!u || u.password !== pass) return null;
+  return { name, role: u.role || 'member' };
+}
+function isAdmin(env, request) {
+  const u = authUser(env, request);
+  return !!u && u.role === 'admin';
+}
+function isMember(env, request) {
+  return !!authUser(env, request);
 }
 
 // UTF-8 安全的 base64（提交说明含中文）
@@ -97,6 +106,12 @@ async function readCommits(env) {
   const file = await ghGet(env, 'commits.json');
   if (!file) return { commits: [], sha: null };
   return { commits: JSON.parse(b64decodeUtf8(file.content)), sha: file.sha };
+}
+
+async function readProjects(env) {
+  const file = await ghGet(env, 'projects.json');
+  if (!file) return { data: { added: [], removedIds: [] }, sha: null };
+  return { data: JSON.parse(b64decodeUtf8(file.content)), sha: file.sha };
 }
 
 export default {
@@ -164,6 +179,43 @@ export default {
             ...cors(env),
           },
         });
+      }
+
+      // 项目覆盖层（读取，开放）：added=新增项目，removedIds=被移除的预置项目id
+      if (pathname === '/api/projects' && request.method === 'GET') {
+        const { data } = await readProjects(env);
+        return json({ added: data.added || [], removedIds: data.removedIds || [] }, env);
+      }
+
+      // 新建项目（任意登录成员）
+      if (pathname === '/api/projects' && request.method === 'POST') {
+        if (!isMember(env, request)) {
+          return json({ error: '无权限：请登录后再新建项目' }, env, 401);
+        }
+        const payload = await request.json();
+        const project = payload.project;
+        if (!project || !project.id) return json({ error: '缺少 project 数据' }, env, 400);
+        const { data, sha } = await readProjects(env);
+        const added = [...(data.added || []), project];
+        const removedIds = (data.removedIds || []).filter((x) => x !== project.id);
+        await ghPut(env, 'projects.json', b64encodeUtf8(JSON.stringify({ added, removedIds }, null, 2)), `add project ${project.name}`, sha);
+        return json({ ok: true, project }, env);
+      }
+
+      // 移除项目（管理员）：预置项目记入 removedIds，新增项目直接删除
+      if (pathname.startsWith('/api/projects/') && request.method === 'DELETE') {
+        if (!isAdmin(env, request)) {
+          return json({ error: '无权限：仅管理员可移除项目' }, env, 401);
+        }
+        const id = decodeURIComponent(pathname.split('/').pop());
+        const { data, sha } = await readProjects(env);
+        const prevAdded = data.added || [];
+        const added = prevAdded.filter((p) => p.id !== id);
+        const removedIds = added.length === prevAdded.length
+          ? [...new Set([...(data.removedIds || []), id])]
+          : (data.removedIds || []);
+        await ghPut(env, 'projects.json', b64encodeUtf8(JSON.stringify({ added, removedIds }, null, 2)), `remove project ${id}`, sha);
+        return json({ ok: true }, env);
       }
 
       return json({ error: 'Not found' }, env, 404);

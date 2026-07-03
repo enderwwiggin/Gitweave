@@ -1,4 +1,4 @@
-import type { FileVersion } from '@/types';
+import type { FileVersion, Project } from '@/types';
 
 // 后端代理（Cloudflare Worker）客户端
 // 令牌在 Worker 服务端。写入需带登录账号密码，Worker 校验是否管理员。
@@ -57,6 +57,41 @@ export async function deleteCommit(id: string, creds: AuthCreds): Promise<void> 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `删除失败: ${res.status}`);
+  }
+}
+
+// ===== 项目（覆盖层：added 新增 + removedIds 移除的预置项目）=====
+export interface ProjectOverrides {
+  added: Project[];
+  removedIds: string[];
+}
+
+export async function fetchProjectOverrides(): Promise<ProjectOverrides> {
+  const res = await fetch(`${backendUrl()}/api/projects`);
+  if (!res.ok) throw new Error(`读取项目失败: ${res.status}`);
+  const data = await res.json();
+  return { added: (data.added as Project[]) ?? [], removedIds: (data.removedIds as string[]) ?? [] };
+}
+
+export async function addProject(project: Project, creds: AuthCreds): Promise<Project> {
+  const res = await fetch(`${backendUrl()}/api/projects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(creds) },
+    body: JSON.stringify({ project }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `新建项目失败: ${res.status}`);
+  return data.project as Project;
+}
+
+export async function removeProject(id: string, creds: AuthCreds): Promise<void> {
+  const res = await fetch(`${backendUrl()}/api/projects/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(creds),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `移除项目失败: ${res.status}`);
   }
 }
 

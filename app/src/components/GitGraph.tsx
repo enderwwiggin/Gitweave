@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
-import { projects, gitNodes, getProjectColor } from '@/data/mockData';
+import { gitNodes, getProjectColor } from '@/data/mockData';
 import { useAuth } from '@/hooks/useAuth';
 import { GitBranch, FolderKanban, Filter, Plus, X, GitCommit, Paperclip, Download, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import type { FileVersion } from '@/types';
 import { backendUrl, fetchCommits, createCommit, deleteCommit, fileToBase64, type AttachmentPayload } from '@/lib/backend';
+import { useProjects } from '@/hooks/useProjects';
 
 interface TooltipData {
   x: number;
@@ -26,6 +27,7 @@ function loadLocalCommits(): FileVersion[] {
 
 export default function GitGraph() {
   const { user, users } = useAuth();
+  const { projects } = useProjects();
   const isAdmin = user?.userRole === 'admin';
   const backendOn = backendUrl().length > 0;
 

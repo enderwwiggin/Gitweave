@@ -1,14 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   GitBranch, Calendar, GripVertical, Filter, User,
-  ArrowRightLeft, X, FolderKanban, Lock, Unlock, Pencil, Save,
+  ArrowRightLeft, X, FolderKanban, Lock, Unlock, Pencil, Save, Plus, Loader2, Trash2,
 } from 'lucide-react';
 import {
-  tasks as initialTasks, projects, getProjectColor,
+  tasks as initialTasks, getProjectColor,
 } from '@/data/mockData';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
 import type { Task, AssignmentHistory, TeamMember } from '@/types';
+import { useProjects } from '@/hooks/useProjects';
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
   { id: 'todo', title: '待办', color: '#d7244b' },
@@ -191,6 +192,7 @@ function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
   const [showReassign, setShowReassign] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const { userId, getTaskPermission } = usePermission();
+  const { projects } = useProjects();
   const perm = getTaskPermission(task.assignee.id, task.editors);
   const isOwner = task.assignee.id === userId;
   const projColor = getProjectColor(task.projectId);
@@ -255,12 +257,45 @@ function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
 }
 
 export default function KanbanBoard() {
-  const { users } = useAuth();
+  const { users, user } = useAuth();
+  const { projects, addProject, removeProject } = useProjects();
+  const isAdmin = user?.userRole === 'admin';
   const [taskList, setTaskList] = useState<Task[]>(initialTasks);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string | null>(null);
   const memberList = users.filter((m) => m.userRole === 'member');
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [npName, setNpName] = useState('');
+  const [npDesc, setNpDesc] = useState('');
+  const [npBusy, setNpBusy] = useState(false);
+  const [projError, setProjError] = useState<string | null>(null);
+
+  const handleAddProject = async () => {
+    if (!npName.trim()) return;
+    setNpBusy(true);
+    setProjError(null);
+    try {
+      await addProject(npName, npDesc);
+      setShowAddProject(false);
+      setNpName('');
+      setNpDesc('');
+    } catch (e) {
+      setProjError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setNpBusy(false);
+    }
+  };
+
+  const handleRemoveProject = async (id: string) => {
+    setProjError(null);
+    try {
+      await removeProject(id);
+      if (filterProject === id) setFilterProject(null);
+    } catch (e) {
+      setProjError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   // 监听 TaskEditModal 发出的编辑事件
   useEffect(() => {
@@ -330,6 +365,10 @@ export default function KanbanBoard() {
           <span className="text-xs font-mono text-[#969699] bg-[#1f1f22] px-2 py-1 rounded-full">{filteredTasks.length} 任务</span>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowAddProject(true)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-[#1868d6] hover:bg-[#1868d6]/80 text-white font-medium transition-colors">
+            <Plus className="w-3.5 h-3.5" />新建项目
+          </button>
           <Calendar className="w-4 h-4 text-[#969699]" />
           <span className="text-sm text-[#969699]">Sprint 3</span>
         </div>
@@ -341,9 +380,15 @@ export default function KanbanBoard() {
         <button onClick={() => setFilterProject(null)}
           className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${!filterProject ? 'bg-[#1868d6]/20 text-[#1868d6]' : 'bg-[#1f1f22] text-[#969699]'}`}>全部项目</button>
         {projects.map((p) => (
-          <button key={p.id} onClick={() => setFilterProject(filterProject === p.id ? null : p.id)}
-            className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${filterProject === p.id ? '' : 'bg-[#1f1f22] text-[#969699]'}`}
-            style={filterProject === p.id ? { backgroundColor: getProjectColor(p.id) + '30', color: getProjectColor(p.id) } : {}}>{p.name}</button>
+          <div key={p.id} className="flex items-center gap-0.5">
+            <button onClick={() => setFilterProject(filterProject === p.id ? null : p.id)}
+              className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${filterProject === p.id ? '' : 'bg-[#1f1f22] text-[#969699]'}`}
+              style={filterProject === p.id ? { backgroundColor: getProjectColor(p.id) + '30', color: getProjectColor(p.id) } : {}}>{p.name}</button>
+            {isAdmin && (
+              <button onClick={() => handleRemoveProject(p.id)} title="移除项目"
+                className="text-[#969699] hover:text-[#d7244b] transition-colors"><Trash2 className="w-3 h-3" /></button>
+            )}
+          </div>
         ))}
         <div className="w-px h-5 bg-[#1f1f22]" />
         <User className="w-4 h-4 text-[#969699]" />
@@ -359,6 +404,13 @@ export default function KanbanBoard() {
           </button>
         ))}
       </div>
+
+      {projError && (
+        <div className="mb-3 px-3 py-2 rounded bg-[#d7244b]/10 border border-[#d7244b]/30 text-xs text-[#d7244b] flex items-center justify-between">
+          <span>{projError}</span>
+          <button onClick={() => setProjError(null)}><X className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
 
       {/* Kanban columns */}
       <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
@@ -396,6 +448,38 @@ export default function KanbanBoard() {
           );
         })}
       </div>
+      {showAddProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !npBusy && setShowAddProject(false)}>
+          <div className="glass-panel rounded-xl w-full max-w-md p-5 fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-[#f4f4f5] flex items-center gap-2">
+                <FolderKanban className="w-4 h-4 text-[#1868d6]" />新建项目
+              </h3>
+              <button onClick={() => setShowAddProject(false)} className="text-[#969699] hover:text-[#f4f4f5]"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-[#969699] mb-1 block">项目名称 *</label>
+                <input type="text" value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="如 视觉抓取"
+                  className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+              </div>
+              <div>
+                <label className="text-xs text-[#969699] mb-1 block">项目描述</label>
+                <input type="text" value={npDesc} onChange={(e) => setNpDesc(e.target.value)} placeholder="一句话描述"
+                  className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setShowAddProject(false)} disabled={npBusy}
+                className="flex-1 h-9 rounded border border-[#1f1f22] text-sm text-[#969699] hover:text-[#f4f4f5] transition-colors disabled:opacity-40">取消</button>
+              <button onClick={handleAddProject} disabled={!npName.trim() || npBusy}
+                className="flex-1 h-9 rounded bg-[#1868d6] hover:bg-[#1868d6]/80 disabled:opacity-40 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1">
+                {npBusy ? <><Loader2 className="w-4 h-4 animate-spin" />创建中...</> : '创建'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

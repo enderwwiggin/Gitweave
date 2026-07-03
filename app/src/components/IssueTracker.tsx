@@ -14,8 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { issues as initialIssues, projects, getProjectColor } from '@/data/mockData';
+import { issues as initialIssues, getProjectColor } from '@/data/mockData';
 import type { Issue, AssignmentHistory } from '@/types';
+import { useProjects } from '@/hooks/useProjects';
 
 type FilterStatus = 'all' | 'open' | 'resolved' | 'closed';
 
@@ -71,6 +72,7 @@ function TransferTimeline({ history }: { history: AssignmentHistory[] }) {
 
 export default function IssueTracker() {
   const [issueList] = useState<Issue[]>(initialIssues);
+  const { projects } = useProjects();
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
