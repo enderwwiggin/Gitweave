@@ -157,6 +157,7 @@ export interface FileVersion {
   size: string;
   hash: string; // git-style hash
   parentId: string | null; // previous version id
+  attachment?: { name: string; path: string; size: string }; // 可选附件（存于私有数据仓库）
 }
 
 export interface CodeCommit {

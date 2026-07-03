@@ -1,0 +1,12 @@
+name = "gitweave-backend"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# 普通变量（非机密）——可在这里写，也可在 Dashboard 设置
+[vars]
+DATA_REPO = "enderwwiggin/gitweave-data"
+ALLOW_ORIGIN = "https://enderwwiggin.github.io"
+
+# 机密（不要写在这里！用命令行设置）：
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put ADMIN_PASSPHRASE
