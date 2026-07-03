@@ -3,3 +3,6 @@ gh_auth.log
 app/node_modules/
 app/dist/
 *.log
+
+# Cloudflare wrangler local cache/state
+backend/.wrangler/
