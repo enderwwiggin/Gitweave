@@ -6,8 +6,8 @@ import fs from 'node:fs';
 const TOKEN = fs.readFileSync('/tmp/ghtok.txt', 'utf8').trim();
 const env = {
   GITHUB_TOKEN: TOKEN,
-  ADMIN_PASSPHRASE: 'testkey123',
   DATA_REPO: 'enderwwiggin/gitweave-data',
+  ADMIN_USERS: '{"傅雪影":"fuxueying","赵海涛":"zhaohaitao"}',
   ALLOW_ORIGIN: '*',
 };
 

@@ -1,64 +1,54 @@
 # GitWeave 后端（Cloudflare Worker + 私有 GitHub 仓库）
 
-让静态前端「新建提交」真正写进**私有** GitHub 仓库，并保证：
-- **管理员**（口令持有者）：可新建/删除提交、上传附件、下载
-- **员工**：可查看、可下载，**不能编辑**（浏览器里没有口令，服务端强制拒绝写入）
-- GitHub 令牌只存在 Worker 服务端，**绝不进前端代码**
+让静态前端「新建提交 / 上传新版本」真正写进**私有** GitHub 仓库：
+- **管理员**（账号 userRole=admin）：登录后即可提交、上传附件、下载、删除——**无需额外口令**
+- **员工**：可查看、可下载，**不能编辑**（账号非管理员 → 服务端返回 401 强制拒绝）
+- GitHub 令牌只在 Worker 服务端，**绝不进前端代码**
 
-数据仓库：`enderwwiggin/gitweave-data`（私有，已创建，含 `commits.json` 和 `attachments/`）。
+**已部署并接通**：
+- Worker：`https://gitweave-backend.2429910092.workers.dev`
+- 数据仓库：`enderwwiggin/gitweave-data`（私有，含 `commits.json` + `attachments/`）
+- 前端已内置 Worker 地址，全员打开即"云端"模式
 
----
+## 鉴权是怎么做的（为什么不用单独口令）
 
-## 一、创建 GitHub 令牌（PAT）
+写入请求（新建/删除/上传）由前端自动带上**当前登录账号的用户名+密码**（HTTP 头 `X-Auth-User` / `X-Auth-Pass`，已 URL 编码）。Worker 用密钥 `ADMIN_USERS`（`{"名字":"密码"}`）校验是否管理员：
+- 是管理员 → 放行写入
+- 员工 / 未登录 / 密码错 → 401
 
-1. 打开 https://github.com/settings/tokens?type=beta →「Generate new token」（Fine-grained）
-2. Repository access → Only select repositories →勾选 **gitweave-data**
-3. Permissions → Repository permissions → **Contents: Read and write**
-4. 生成，复制令牌（`github_pat_...`），只显示一次
+所以管理员只要正常登录 App 就能提交，员工登录也改不了——判断在服务端，前端改不了。
 
-## 二、部署 Worker（二选一）
+## Cloudflare 环境变量/密钥
 
-### 方式 A：Cloudflare 网页控制台（无需命令行，推荐）
+| 名称 | 类型 | 值 |
+|------|------|-----|
+| `GITHUB_TOKEN` | Secret | 对 gitweave-data 有 contents 读写权的令牌（当前复用 gh CLI 令牌） |
+| `ADMIN_USERS` | Secret | 管理员账号密码 JSON，如 `{"傅雪影":"fuxueying","赵海涛":"zhaohaitao"}` |
+| `DATA_REPO` | Text | `enderwwiggin/gitweave-data` |
+| `ALLOW_ORIGIN` | Text | `https://enderwwiggin.github.io` |
 
-1. 注册/登录 https://dash.cloudflare.com → 左侧 **Workers & Pages** →「Create」→「Create Worker」
-2. 起个名字（如 `gitweave-backend`）→ Deploy（先部署占位）
-3. 进入该 Worker →「Edit code」→ 把本目录 `worker.js` 全部内容粘贴进去 → Save & Deploy
-4. 回到 Worker →「Settings」→「Variables and Secrets」，添加：
-   - `GITHUB_TOKEN`  → 类型 **Secret** → 粘贴第一步的令牌
-   - `ADMIN_PASSPHRASE` → 类型 **Secret** → 自定义一个管理员口令（如 `Umi@2026!`）
-   - `DATA_REPO` → 类型 Text → `enderwwiggin/gitweave-data`
-   - `ALLOW_ORIGIN` → 类型 Text → `https://enderwwiggin.github.io`
-5. 复制 Worker 地址（形如 `https://gitweave-backend.你的子域.workers.dev`）
-
-### 方式 B：命令行（wrangler）
+## 重新部署 / 改配置
 
 ```bash
 cd backend
-npx wrangler deploy
-npx wrangler secret put GITHUB_TOKEN        # 粘贴 PAT
-npx wrangler secret put ADMIN_PASSPHRASE    # 输入管理员口令
-# DATA_REPO / ALLOW_ORIGIN 已在 wrangler.toml 的 [vars] 中
+npx wrangler deploy                      # 部署 worker.js
+npx wrangler secret put GITHUB_TOKEN     # 改令牌
+npx wrangler secret put ADMIN_USERS      # 改管理员名单：粘贴 {"名字":"密码",...}
 ```
 
-## 三、把地址接到前端
+- **加管理员**：把新管理员的「App 登录名:密码」加进 `ADMIN_USERS` 的 JSON 再 `secret put`。
+- **改管理员密码**：App 里改该账号密码后，同步更新 `ADMIN_USERS`。
 
-拿到 Worker 地址后，**二选一**：
+## 安全说明（重要）
 
-- **推荐（团队生效）**：把地址发我，我填进 `app/src/lib/backend.ts` 的 `BAKED_BACKEND_URL` 并重新部署——之后所有员工打开即读云端，无需各自配置。
-- **临时/自测**：登录后进「代码提交」→ 右上角 ⚙ →「后端设置」，填 Worker 地址（管理员再填口令）保存。仅当前浏览器生效。
+- 预置账号密码写在**公开**前端仓库的 mockData 里（如 fuxueying），任何人看公开仓库就能得知 → 目前"管理员"防护强度 ≈ 这些密码的保密度。
+- 要真正收紧：把管理员密码改成不在公开仓库里的强密码（App 里改 + 同步 `ADMIN_USERS`），并将 `GITHUB_TOKEN` 换成只授权 `gitweave-data` 的细粒度 PAT。
+- `GITHUB_TOKEN` 现复用 gh CLI 令牌；若执行 `gh auth logout` 会导致后端失效。
 
-## 四、日常使用
+## 附件
 
-- **管理员**：⚙ 里填一次 Worker 地址 + 管理员口令（口令只存本机浏览器）。之后「+ 新建提交」可选文件作附件，提交即写入私有仓库。
-- **员工**：直接看到提交列表，点附件即下载；看不到「新建提交/删除/设置」。
-
-## 权限与边界
-
-- 读取（列表/下载）走 Worker，无需口令——Worker 地址即门槛。
-- 写入/删除必须带正确 `ADMIN_PASSPHRASE`，否则服务端返回 401。员工无口令 → 物理上无法写入。
-- 附件走 GitHub Contents API，单文件建议 < 25MB（GitHub 限制）。更大文件需改用 Git LFS 或对象存储（R2）。
-- `worker.js`、`wrangler.toml` 不含任何密钥，可安全提交到公开仓库；密钥只在 Cloudflare 里。
+走 GitHub Contents API，单文件建议 < 25MB。更大文件需改用 Git LFS 或对象存储（Cloudflare R2）。
 
 ## 本地联调（可选）
 
-`serve.mjs` 可在本机用真实令牌跑 `worker.js`（需先把 PAT 写到 `/tmp/ghtok.txt`），前端 ⚙ 指向 `http://localhost:8787` 即可测试。仅供开发。
+`serve.mjs` 用真实令牌在本机跑 `worker.js`（需把 PAT 写到 `/tmp/ghtok.txt`，并在 serve.mjs 里设 ADMIN_USERS），前端指向 `http://localhost:8787`。仅供开发。
