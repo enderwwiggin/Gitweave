@@ -118,16 +118,16 @@ function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [tagsInput, setTagsInput] = useState(task.tags.join(', '));
-  const { userId } = usePermission();
+  const { userId, isAdmin } = usePermission();
   const isOwner = task.assignee.id === userId || task.editors.includes(userId);
-
-  if (!isOwner) {
+  const canEdit = isAdmin || isOwner;
+  if (!canEdit) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div className="glass-panel rounded-lg p-6 w-96 max-w-[90vw] text-center">
           <Lock className="w-8 h-8 text-[#969699] mx-auto mb-3" />
           <p className="text-sm text-[#969699]">你无权编辑此任务</p>
-          <button onClick={onClose} className="mt-4 px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">关闭</button>
+          <button onClick={() => onClose()} className="mt-4 px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">关闭</button>
         </div>
       </div>
     );
