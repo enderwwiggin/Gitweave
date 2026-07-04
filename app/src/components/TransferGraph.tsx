@@ -9,7 +9,7 @@ export default function TransferGraph() {
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
-  const activeMembers = teamMembers.filter((m) => m.id !== 'm9'); // exclude 小组
+  const activeMembers = teamMembers;
 
   const nodes = filterProject
     ? allNodes.filter((n) => n.projectId === filterProject)

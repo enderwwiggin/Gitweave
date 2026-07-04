@@ -150,6 +150,8 @@ export interface FileVersion {
   version: string; // "v1", "v2", "v3" ...
   filename: string;
   projectId: string;
+  projectName?: string; // 冗余记录项目名，便于在数据仓库中直接识别
+  projectDescription?: string; // 冗余记录项目说明
   uploader: TeamMember;
   description: string; // what changed
   diff: string; // diff description

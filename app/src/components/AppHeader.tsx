@@ -6,7 +6,7 @@ import Logo from './Logo';
 
 export default function AppHeader() {
   const [searchFocused, setSearchFocused] = useState(false);
-  const displayMembers = teamMembers.filter((m) => m.id !== 'm9'); // exclude 小组协作
+  const displayMembers = teamMembers;
   const { user, logout } = useAuth();
 
   return (

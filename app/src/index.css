@@ -121,7 +121,6 @@
 
   .kanban-column {
     min-height: 400px;
-    pointer-events: none;
   }
 
   .kanban-card {

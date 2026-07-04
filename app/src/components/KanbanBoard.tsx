@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   GitBranch, Calendar, GripVertical, Filter, User,
   ArrowRightLeft, X, FolderKanban, Lock, Unlock, Pencil, Save, Plus, Loader2, Trash2,
@@ -92,7 +93,6 @@ function ReassignModal({ task, onClose, onReassign, allMembers }: {
                   <span className="text-[10px] font-bold text-white">{m.initials}</span>
                 </div>
                 <span className="text-sm text-[#f4f4f5]">{m.name}</span>
-                <span className="text-xs text-[#969699] ml-auto">{m.role}</span>
               </button>
             ))}
           </div>
@@ -250,8 +250,14 @@ function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
           </div>
         </div>
       </div>
-      {showReassign && <ReassignModal task={task} onClose={() => setShowReassign(false)} onReassign={onReassign} allMembers={allMembers} />}
-      {showEdit && <TaskEditModal task={task} onClose={() => setShowEdit(false)} />}
+      {showReassign && createPortal(
+        <ReassignModal task={task} onClose={() => setShowReassign(false)} onReassign={onReassign} allMembers={allMembers} />,
+        document.body
+      )}
+      {showEdit && createPortal(
+        <TaskEditModal task={task} onClose={() => setShowEdit(false)} />,
+        document.body
+      )}
     </>
   );
 }
@@ -448,37 +454,40 @@ export default function KanbanBoard() {
           );
         })}
       </div>
-      {showAddProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !npBusy && setShowAddProject(false)}>
-          <div className="glass-panel rounded-xl w-full max-w-md p-5 fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-[#f4f4f5] flex items-center gap-2">
-                <FolderKanban className="w-4 h-4 text-[#1868d6]" />新建项目
-              </h3>
-              <button onClick={() => setShowAddProject(false)} className="text-[#969699] hover:text-[#f4f4f5]"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-[#969699] mb-1 block">项目名称 *</label>
-                <input type="text" value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="如 视觉抓取"
-                  className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+      {showAddProject && createPortal(
+        (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !npBusy && setShowAddProject(false)}>
+            <div className="glass-panel rounded-xl w-full max-w-md p-5 fade-in-up" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#f4f4f5] flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4 text-[#1868d6]" />新建项目
+                </h3>
+                <button onClick={() => setShowAddProject(false)} className="text-[#969699] hover:text-[#f4f4f5]"><X className="w-4 h-4" /></button>
               </div>
-              <div>
-                <label className="text-xs text-[#969699] mb-1 block">项目描述</label>
-                <input type="text" value={npDesc} onChange={(e) => setNpDesc(e.target.value)} placeholder="一句话描述"
-                  className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-[#969699] mb-1 block">项目名称 *</label>
+                  <input type="text" value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="如 视觉抓取"
+                    className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+                </div>
+                <div>
+                  <label className="text-xs text-[#969699] mb-1 block">项目描述</label>
+                  <input type="text" value={npDesc} onChange={(e) => setNpDesc(e.target.value)} placeholder="一句话描述"
+                    className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={() => setShowAddProject(false)} disabled={npBusy}
-                className="flex-1 h-9 rounded border border-[#1f1f22] text-sm text-[#969699] hover:text-[#f4f4f5] transition-colors disabled:opacity-40">取消</button>
-              <button onClick={handleAddProject} disabled={!npName.trim() || npBusy}
-                className="flex-1 h-9 rounded bg-[#1868d6] hover:bg-[#1868d6]/80 disabled:opacity-40 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1">
-                {npBusy ? <><Loader2 className="w-4 h-4 animate-spin" />创建中...</> : '创建'}
-              </button>
+              <div className="flex gap-2 mt-5">
+                <button onClick={() => setShowAddProject(false)} disabled={npBusy}
+                  className="flex-1 h-9 rounded border border-[#1f1f22] text-sm text-[#969699] hover:text-[#f4f4f5] transition-colors disabled:opacity-40">取消</button>
+                <button onClick={handleAddProject} disabled={!npName.trim() || npBusy}
+                  className="flex-1 h-9 rounded bg-[#1868d6] hover:bg-[#1868d6]/80 disabled:opacity-40 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1">
+                  {npBusy ? <><Loader2 className="w-4 h-4 animate-spin" />创建中...</> : '创建'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ),
+        document.body
       )}
     </div>
   );

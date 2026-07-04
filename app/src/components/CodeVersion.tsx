@@ -74,11 +74,14 @@ export default function CodeVersion() {
     const uploader = users.find((u) => u.id === user?.id) ?? users[0];
     const history = commits.filter((c) => c.filename === formFile && c.projectId === formProject);
     const parent = history[0] ?? null;
+    const proj = projects.find((p) => p.id === formProject);
     const commit: FileVersion = {
       id: `cm-${Date.now()}`,
       version: `v${history.length + 1}`,
       filename: formFile,
       projectId: formProject,
+      projectName: proj?.name,
+      projectDescription: proj?.description,
       uploader,
       description: formDesc,
       diff: formDiff.trim() || formDesc,

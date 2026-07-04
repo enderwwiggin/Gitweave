@@ -91,11 +91,14 @@ export default function GitGraph() {
     const uploader = users.find((u) => u.id === user?.id) ?? users[0];
     const history = commits.filter((c) => c.projectId === fProject && c.filename === fFile.trim());
     const parent = history[0] ?? null;
+    const proj = projects.find((p) => p.id === fProject);
     const commit: FileVersion = {
       id: `cm-${Date.now()}`,
       version: `v${history.length + 1}`,
       filename: fFile.trim(),
       projectId: fProject,
+      projectName: proj?.name,
+      projectDescription: proj?.description,
       uploader,
       description: fMessage.trim(),
       diff: fDiff.trim() || fMessage.trim(),

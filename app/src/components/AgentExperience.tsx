@@ -295,14 +295,7 @@ export default function AgentExperience() {
                     {exp.author.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-[#f4f4f5]">
-                        {exp.author.name}
-                      </span>
-                      <span className="text-xs text-[#969699]">
-                        {exp.author.role}
-                      </span>
-                    </div>
+                    <div className="text-sm font-medium text-[#f4f4f5] mb-1">{exp.author.name}</div>
                     <h3 className="text-base font-semibold text-[#f4f4f5] mb-1.5">
                       {exp.title}
                     </h3>

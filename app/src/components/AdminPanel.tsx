@@ -184,13 +184,7 @@ export default function AdminPanel() {
                 {m.initials}
               </div>
               <div>
-                <div className="text-sm font-medium text-[#f4f4f5] flex items-center gap-2">
-                  {m.name}
-                  <span className="text-[10px] text-[#dc2626] bg-[#dc2626]/10 px-1.5 py-0.5 rounded font-mono">
-                    ADMIN
-                  </span>
-                </div>
-                <div className="text-xs text-[#969699]">{m.role}</div>
+                <div className="text-sm font-medium text-[#f4f4f5]">{m.name}</div>
               </div>
             </div>
           ))}
@@ -217,7 +211,6 @@ export default function AdminPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-[#f4f4f5]">{m.name}</div>
-                    <div className="text-xs text-[#969699]">{m.role}</div>
                   </div>
                   <button
                     onClick={() => setShowDeleteConfirm(m.id)}
@@ -276,7 +269,6 @@ export default function AdminPanel() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-[#969699] line-through">{m.name}</div>
-                    <div className="text-xs text-[#969699]">{m.role}</div>
                   </div>
                 </div>
               </div>

@@ -49,7 +49,6 @@ function TeamView() {
               </div>
               <div>
                 <h3 className="text-base font-medium text-[#f4f4f5]">{member.name}</h3>
-                <p className="text-sm text-[#969699]">{member.role}</p>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-[#1f1f22]">
@@ -83,6 +82,7 @@ function TeamView() {
 
 function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { projects } = useProjects();
+  const [taskFilterProject, setTaskFilterProject] = useState('all');
   // 只显示进行中（active）的项目
   const projectStats = projects
     .filter((p) => p.status === 'active')
@@ -130,11 +130,20 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
             <h3 className="text-sm font-medium text-[#f4f4f5] flex items-center gap-2">
               <KanbanSquare className="w-4 h-4 text-[#10b981]" />任务概览
             </h3>
-            <button onClick={() => onNavigate('board')} className="text-xs text-[#10b981] hover:underline">打开看板</button>
+            <select
+              value={taskFilterProject}
+              onChange={(e) => setTaskFilterProject(e.target.value)}
+              className="h-7 px-2 text-xs rounded bg-[#050507] border border-[#1f1f22] text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50 cursor-pointer"
+            >
+              <option value="all">全部项目</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
           <div className="h-[calc(100%-44px)] overflow-y-auto scrollbar-thin p-4">
             <div className="space-y-2 mb-4">
-              {projects.map((p) => {
+              {projects.filter((p) => taskFilterProject === 'all' || p.id === taskFilterProject).map((p) => {
                 const pt = tasks.filter((t) => t.projectId === p.id);
                 const todo = pt.filter((t) => t.status === 'todo').length;
                 const doing = pt.filter((t) => t.status === 'in-progress').length;
@@ -170,7 +179,7 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
             <TodoList />
           </div>
         </div>
-      </div>
+        </div>
     </div>
   );
 }
