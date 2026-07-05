@@ -391,32 +391,32 @@ export default function KanbanBoard() {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <Filter className="w-4 h-4 text-[#969699]" />
-        <button onClick={() => setFilterProject(null)}
-          className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${!filterProject ? 'bg-[#1868d6]/20 text-[#1868d6]' : 'bg-[#1f1f22] text-[#969699]'}`}>全部项目</button>
-        {projects.map((p) => (
-          <div key={p.id} className="flex items-center gap-0.5">
-            <button onClick={() => setFilterProject(filterProject === p.id ? null : p.id)}
-              className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${filterProject === p.id ? '' : 'bg-[#1f1f22] text-[#969699]'}`}
-              style={filterProject === p.id ? { backgroundColor: getProjectColor(p.id) + '30', color: getProjectColor(p.id) } : {}}>{p.name}</button>
-            {isAdmin && (
-              <button onClick={() => handleRemoveProject(p.id)} title="移除项目"
-                className="text-[#969699] hover:text-[#d7244b] transition-colors"><Trash2 className="w-3 h-3" /></button>
-            )}
-          </div>
-        ))}
+        <select
+          value={filterProject || ''}
+          onChange={(e) => setFilterProject(e.target.value || null)}
+          className="h-7 px-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50 font-mono"
+        >
+          <option value="">全部项目</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        {isAdmin && filterProject && (
+          <button onClick={() => handleRemoveProject(filterProject)} title="删除此项目"
+            className="text-[#969699] hover:text-[#d7244b] transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+        )}
         <div className="w-px h-5 bg-[#1f1f22]" />
         <User className="w-4 h-4 text-[#969699]" />
-        <button onClick={() => setFilterMember(null)}
-          className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${!filterMember ? 'bg-[#1868d6]/20 text-[#1868d6]' : 'bg-[#1f1f22] text-[#969699]'}`}>全部成员</button>
-        {memberList.map((m) => (
-          <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)}
-            className={`transition-all ${filterMember === m.id ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-            style={filterMember === m.id ? { outline: `2px solid ${m.color}`, outlineOffset: '2px', borderRadius: '9999px' } : {}} title={m.name}>
-            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: m.color }}>
-              <span className="text-[9px] font-bold text-white">{m.initials}</span>
-            </div>
-          </button>
-        ))}
+        <select
+          value={filterMember || ''}
+          onChange={(e) => setFilterMember(e.target.value || null)}
+          className="h-7 px-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50 font-mono"
+        >
+          <option value="">全部成员</option>
+          {memberList.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
       </div>
 
       {projError && (

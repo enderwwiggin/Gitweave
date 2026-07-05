@@ -45,17 +45,21 @@ function loadUser(): AuthUser | null {
   }
 }
 
-// 从 localStorage 恢复注册过的用户，与初始 teamMembers 合并
+// 从 localStorage 恢复注册过的用户，localStorage 数据覆盖 teamMembers 的同 ID 条目
 function loadPool(): TeamMember[] {
   const base = [...teamMembers];
   try {
     const saved = localStorage.getItem(POOL_KEY);
     if (saved) {
-      const extra = JSON.parse(saved) as TeamMember[];
-      const existingIds = new Set(base.map((m) => m.id));
-      for (const m of extra) {
-        if (!existingIds.has(m.id)) base.push(m);
+      const overrides = JSON.parse(saved) as TeamMember[];
+      const overrideMap = new Map(overrides.map((m) => [m.id, m]));
+      // 更新已有成员 + 追加新成员
+      for (let i = 0; i < base.length; i++) {
+        const ov = overrideMap.get(base[i].id);
+        if (ov) { base[i] = { ...base[i], ...ov }; overrideMap.delete(base[i].id); }
       }
+      // 追加 teamMembers 中不存在的新注册用户
+      for (const m of overrideMap.values()) base.push(m);
     }
   } catch {
     // ignore
@@ -63,9 +67,9 @@ function loadPool(): TeamMember[] {
   return base;
 }
 
+// 持久化全部用户池（包括对 teamMembers 的覆盖更新）
 function persistPool(pool: TeamMember[]) {
-  const extra = pool.filter((m) => !teamMembers.some((t) => t.id === m.id));
-  try { localStorage.setItem(POOL_KEY, JSON.stringify(extra)); } catch { /* ignore */ }
+  try { localStorage.setItem(POOL_KEY, JSON.stringify(pool)); } catch { /* ignore */ }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

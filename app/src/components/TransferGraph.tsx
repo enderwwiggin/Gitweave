@@ -50,26 +50,16 @@ export default function TransferGraph() {
 
         <div className="flex items-center gap-2">
           <Filter className="w-3.5 h-3.5 text-[#969699]" />
-          <button
-            onClick={() => setFilterProject(null)}
-            className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${
-              !filterProject ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'bg-[#1f1f22] text-[#969699] hover:text-[#f4f4f5]'
-            }`}
+          <select
+            value={filterProject || ''}
+            onChange={(e) => setFilterProject(e.target.value || null)}
+            className="h-7 px-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50 font-mono"
           >
-            全部
-          </button>
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setFilterProject(filterProject === p.id ? null : p.id)}
-              className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${
-                filterProject === p.id ? 'text-white' : 'bg-[#1f1f22] text-[#969699] hover:text-[#f4f4f5]'
-              }`}
-              style={filterProject === p.id ? { backgroundColor: getProjectColor(p.id) + '30', color: getProjectColor(p.id) } : {}}
-            >
-              {p.name}
-            </button>
-          ))}
+            <option value="">全部项目</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 

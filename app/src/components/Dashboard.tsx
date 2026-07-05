@@ -33,48 +33,74 @@ const sidebarItems = [
 
 function TeamView() {
   const memberList = teamMembers.filter((m) => m.userRole === 'member');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const selectedMember = memberList.find((m) => m.id === selectedMemberId);
 
   return (
     <div className="h-full flex flex-col">
       <h2 className="text-xl font-semibold text-[#f4f4f5] mb-6">团队成员</h2>
       <h3 className="text-xs font-mono text-[#1868d6] mb-3 uppercase tracking-wider">普通成员</h3>
-      <div className="grid grid-cols-3 gap-4">
-        {memberList.map((member: TeamMember, index: number) => (
-          <div key={member.id} className="glass-panel rounded-lg p-5 fade-in-up"
-            style={{ animationDelay: `${(index + 2) * 80}ms` }}>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center pl-2">
+          {memberList.map((member: TeamMember, index: number) => (
+            <button
+              key={member.id}
+              onClick={() => setSelectedMemberId(member.id)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-[#050507] -ml-2 transition-transform hover:scale-110 ${selectedMemberId === member.id ? 'ring-2 ring-[#1868d6] z-10' : ''}`}
+              style={{ backgroundColor: member.color, zIndex: memberList.length - index }}
+              title={member.name}
+            >
+              {member.initials}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={selectedMemberId || ''}
+          onChange={(e) => setSelectedMemberId(e.target.value || null)}
+          className="h-8 px-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50 font-mono"
+        >
+          <option value="">选择成员</option>
+          {memberList.map((member: TeamMember) => (
+            <option key={member.id} value={member.id}>{member.name}</option>
+          ))}
+        </select>
+
+        {selectedMember && (
+          <div className="glass-panel rounded-lg p-5 fade-in-up">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white"
-                style={{ backgroundColor: member.color }}>
-                {member.initials}
+                style={{ backgroundColor: selectedMember.color }}>
+                {selectedMember.initials}
               </div>
               <div>
-                <h3 className="text-base font-medium text-[#f4f4f5]">{member.name}</h3>
+                <h3 className="text-base font-medium text-[#f4f4f5]">{selectedMember.name}</h3>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-[#1f1f22]">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-lg font-mono font-bold text-[#1868d6]">
-                    {tasks.filter((t) => t.assignee.id === member.id).length}
+                    {tasks.filter((t) => t.assignee.id === selectedMember.id).length}
                   </div>
                   <div className="text-xs text-[#969699]">任务</div>
                 </div>
                 <div>
                   <div className="text-lg font-mono font-bold text-[#10b981]">
-                    {tasks.filter((t) => t.assignee.id === member.id && t.status === 'done').length}
+                    {tasks.filter((t) => t.assignee.id === selectedMember.id && t.status === 'done').length}
                   </div>
                   <div className="text-xs text-[#969699]">完成</div>
                 </div>
                 <div>
                   <div className="text-lg font-mono font-bold text-[#d7244b]">
-                    {issues.filter((i) => i.assignee.id === member.id && i.status === 'open').length}
+                    {issues.filter((i) => i.assignee.id === selectedMember.id && i.status === 'open').length}
                   </div>
                   <div className="text-xs text-[#969699]">待修复</div>
                 </div>
               </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

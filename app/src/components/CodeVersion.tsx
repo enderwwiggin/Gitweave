@@ -209,28 +209,17 @@ export default function CodeVersion() {
       {/* Project Filter */}
       <div className="flex items-center gap-2 mb-4">
         <Filter className="w-4 h-4 text-[#969699]" />
-        <button
-          onClick={() => setFilterProject(null)}
-          className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${
-            !filterProject ? 'bg-[#1868d6]/20 text-[#1868d6]' : 'bg-[#1f1f22] text-[#969699]'
-          }`}
+        <select
+          value={filterProject || ''}
+          onChange={(e) => setFilterProject(e.target.value || null)}
+          className="h-7 px-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50 font-mono"
         >
-          全部
-        </button>
-        {projects.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setFilterProject(filterProject === p.id ? null : p.id)}
-            className={`text-xs px-2.5 py-1 rounded-full font-mono transition-colors ${
-              filterProject === p.id ? '' : 'bg-[#1f1f22] text-[#969699]'
-            }`}
-            style={filterProject === p.id ? { backgroundColor: getProjectColor(p.id) + '30', color: getProjectColor(p.id) } : {}}
-          >
-            {p.name}
-          </button>
-        ))}
+          <option value="">全部项目</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
       </div>
-
       {/* Version Timeline */}
       <div className="flex-1 overflow-y-auto scrollbar-thin space-y-4">
         {loading ? (
