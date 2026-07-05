@@ -8,7 +8,7 @@ interface ProjectsContextValue {
   projects: Project[];
   loading: boolean;
   error: string | null;
-  addProject: (name: string, description: string) => Promise<void>;
+  addProject: (name: string, description: string, leadId: string) => Promise<void>;
   removeProject: (id: string) => Promise<void>;
   reload: () => void;
 }
@@ -46,16 +46,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [added, removedIds],
   );
 
-  const addProject = async (name: string, description: string) => {
-    const me = users.find((u) => u.id === user?.id) ?? users[0];
-    const creds = { name: user?.name ?? '', password: me?.password ?? '' };
+  const addProject = async (name: string, description: string, leadId: string) => {
+    const lead = users.find((u) => u.id === leadId) ?? users[0];
+    const creds = { name: user?.name ?? '', password: lead.password ?? '' };
     const project: Project = {
       id: `pr-${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
       status: 'active',
-      lead: me,
-      members: [me],
+      lead,
+      members: [lead],
       startDate: new Date().toLocaleString('sv').slice(0, 10),
     };
     const saved = await apiAddProject(project, creds);

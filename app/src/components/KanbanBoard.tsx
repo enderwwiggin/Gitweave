@@ -282,18 +282,18 @@ export default function KanbanBoard() {
   const [showAddProject, setShowAddProject] = useState(false);
   const [npName, setNpName] = useState('');
   const [npDesc, setNpDesc] = useState('');
+  const [npLead, setNpLead] = useState('');
   const [npBusy, setNpBusy] = useState(false);
   const [projError, setProjError] = useState<string | null>(null);
 
   const handleAddProject = async () => {
-    if (!npName.trim()) return;
+    if (!npName.trim() || !npLead) return;
     setNpBusy(true);
     setProjError(null);
     try {
-      await addProject(npName, npDesc);
+      await addProject(npName, npDesc, npLead);
       setShowAddProject(false);
-      setNpName('');
-      setNpDesc('');
+      setNpName(''); setNpDesc(''); setNpLead('');
     } catch (e) {
       setProjError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -479,6 +479,14 @@ export default function KanbanBoard() {
                     className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
                 </div>
                 <div>
+                  <label className="text-xs text-[#969699] mb-1 block">负责人 *</label>
+                  <select value={npLead} onChange={(e) => setNpLead(e.target.value)}
+                    className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50">
+                    <option value="">选择负责人...</option>
+                    {users.map((m) => <option key={m.id} value={m.id}>{m.name}（{m.role}）</option>)}
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs text-[#969699] mb-1 block">项目描述</label>
                   <input type="text" value={npDesc} onChange={(e) => setNpDesc(e.target.value)} placeholder="一句话描述"
                     className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
@@ -487,7 +495,7 @@ export default function KanbanBoard() {
               <div className="flex gap-2 mt-5">
                 <button onClick={() => setShowAddProject(false)} disabled={npBusy}
                   className="flex-1 h-9 rounded border border-[#1f1f22] text-sm text-[#969699] hover:text-[#f4f4f5] transition-colors disabled:opacity-40">取消</button>
-                <button onClick={handleAddProject} disabled={!npName.trim() || npBusy}
+                <button onClick={handleAddProject} disabled={!npName.trim() || !npLead || npBusy}
                   className="flex-1 h-9 rounded bg-[#1868d6] hover:bg-[#1868d6]/80 disabled:opacity-40 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1">
                   {npBusy ? <><Loader2 className="w-4 h-4 animate-spin" />创建中...</> : '创建'}
                 </button>
