@@ -122,7 +122,7 @@ function ReassignModal({ task, onClose, onReassign, allMembers }: {
   );
 }
 
-function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
+function TaskEditModal({ task, onClose, onDelete }: { task: Task; onClose: () => void; onDelete?: () => void }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [tagsInput, setTagsInput] = useState(task.tags.join(', '));
@@ -179,23 +179,32 @@ function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
               className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50 font-mono" />
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">取消</button>
-          <button onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-2 rounded bg-[#10b981] hover:bg-[#10b981]/80 text-white text-xs font-medium">
-            <Save className="w-3.5 h-3.5" />保存
-          </button>
+        <div className="flex justify-between gap-2 mt-4">
+          {isAdmin && onDelete && (
+            <button onClick={() => { onDelete(); onClose(); }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded bg-[#d7244b]/10 hover:bg-[#d7244b]/20 text-[#d7244b] text-xs font-medium border border-[#d7244b]/20 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />删除任务
+            </button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <button onClick={onClose} className="px-4 py-2 rounded bg-[#1f1f22] text-xs text-[#969699] hover:text-[#f4f4f5]">取消</button>
+            <button onClick={handleSave}
+              className="flex items-center gap-1.5 px-4 py-2 rounded bg-[#10b981] hover:bg-[#10b981]/80 text-white text-xs font-medium">
+              <Save className="w-3.5 h-3.5" />保存
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
+function TaskCard({ task, index, onDragStart, onReassign, allMembers, onDeleteTask }: {
   task: Task; index: number;
   onDragStart: (e: React.DragEvent, task: Task) => void;
   onReassign: (taskId: string, newAssignee: TeamMember, reason: string) => void;
   allMembers: TeamMember[];
+  onDeleteTask?: (taskId: string) => void;
 }) {
   const [showReassign, setShowReassign] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -263,7 +272,7 @@ function TaskCard({ task, index, onDragStart, onReassign, allMembers }: {
         document.body
       )}
       {showEdit && createPortal(
-        <TaskEditModal task={task} onClose={() => setShowEdit(false)} />,
+        <TaskEditModal task={task} onClose={() => setShowEdit(false)} onDelete={() => onDeleteTask?.(task.id)} />,
         document.body
       )}
     </>
@@ -309,6 +318,10 @@ export default function KanbanBoard() {
     } catch (e) {
       setProjError(e instanceof Error ? e.message : String(e));
     }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTaskList((prev) => prev.filter((t) => t.id !== taskId));
   };
 
   // 监听 TaskEditModal 发出的编辑事件
@@ -448,7 +461,7 @@ export default function KanbanBoard() {
               <div className="flex-1 overflow-y-auto scrollbar-thin p-3">
                 {columnTasks.map((task, index) => (
                   <div key={task.id} onDragEnd={handleDragEnd}>
-                    <TaskCard task={task} index={index} onDragStart={handleDragStart} onReassign={handleReassign} allMembers={users} />
+                    <TaskCard task={task} index={index} onDragStart={handleDragStart} onReassign={handleReassign} allMembers={users} onDeleteTask={handleDeleteTask} />
                   </div>
                 ))}
                 {columnTasks.length === 0 && (
