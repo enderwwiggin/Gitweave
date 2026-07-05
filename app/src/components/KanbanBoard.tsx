@@ -40,20 +40,23 @@ function TransferMini({ history }: { history: AssignmentHistory[] }) {
 }
 
 function PermissionBadge({ canEdit, isOwner }: { canEdit: boolean; isOwner: boolean }) {
-  if (canEdit) {
+  if (canEdit && isOwner) {
     return (
       <span className="inline-flex items-center gap-1 text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded font-mono">
         <Unlock className="w-2.5 h-2.5" />
-        {isOwner ? '可编辑' : 'Admin'}
+        可编辑
       </span>
     );
   }
-  return (
-    <span className="inline-flex items-center gap-1 text-[9px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded font-mono">
-      <Lock className="w-2.5 h-2.5" />
-      只读
-    </span>
-  );
+  if (!canEdit) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded font-mono">
+        <Lock className="w-2.5 h-2.5" />
+        只读
+      </span>
+    );
+  }
+  return null;
 }
 
 function ReassignModal({ task, onClose, onReassign, allMembers }: {
@@ -98,14 +101,19 @@ function ReassignModal({ task, onClose, onReassign, allMembers }: {
           </div>
         </div>
         <div className="mb-4">
-          <label className="text-xs text-[#969699] mb-1.5 block">移交原因</label>
-          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="为什么移交给这位同事..."
+          <label className="text-xs text-[#969699] mb-1.5 block">
+            移交原因 <span className="text-[#d7244b]">*</span>
+          </label>
+          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="必须填写：为什么移交给这位同事..."
             className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
+          {!reason.trim() && selectedMember && (
+            <p className="text-[10px] text-[#d7244b] mt-1">请填写移交原因，防止误操作</p>
+          )}
         </div>
         <button onClick={() => {
           const m = allMembers.find((tm) => tm.id === selectedMember);
-          if (m) { onReassign(task.id, m, reason || '任务移交'); onClose(); }
-        }} disabled={!selectedMember}
+          if (m) { onReassign(task.id, m, reason.trim()); onClose(); }
+        }} disabled={!selectedMember || !reason.trim()}
           className="w-full h-10 rounded-lg bg-[#f59e0b] hover:bg-[#f59e0b]/80 disabled:opacity-40 text-[#050507] text-sm font-semibold transition-colors flex items-center justify-center gap-2">
           <ArrowRightLeft className="w-4 h-4" />确认移交
         </button>

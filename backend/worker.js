@@ -102,6 +102,22 @@ async function ghPut(env, path, contentB64, message, sha) {
   return res.json();
 }
 
+// 生成附件路径：attachments/项目名称/版本号/文件名
+// 版本号按项目递增，从 v0.0.1 开始
+function nextProjectVersion(commits, projectId) {
+  const versions = (commits || [])
+    .filter((c) => c.projectId === projectId)
+    .map((c) => {
+      const m = String(c.version || '').match(/v0\.0\.(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    });
+  const max = versions.length ? Math.max(...versions) : 0;
+  return `v0.0.${max + 1}`;
+}
+function safePathName(name) {
+  return String(name || 'unknown').replace(/[^\w.\-\u4e00-\u9fa5]/g, '_');
+}
+
 async function readCommits(env) {
   const file = await ghGet(env, 'commits.json');
   if (!file) return { commits: [], sha: null };
@@ -139,17 +155,25 @@ export default {
         const commit = payload.commit;
         if (!commit || !commit.id) return json({ error: '缺少 commit 数据' }, env, 400);
 
-        // 附件：先写文件，再把路径记进 commit
+        // 先读取 commits.json，以便按项目生成版本号
+        const { commits, sha } = await readCommits(env);
+        const version = nextProjectVersion(commits, commit.projectId);
+        commit.version = version;
+
+        // 附件：按项目名称/版本号存放
         if (payload.attachment && payload.attachment.contentBase64) {
           const safeName = payload.attachment.name.replace(/[^\w.\-\u4e00-\u9fa5]/g, '_');
-          const apath = `attachments/${commit.id}/${safeName}`;
-          await ghPut(env, apath, payload.attachment.contentBase64, `attach ${safeName} for ${commit.id}`);
+          const projectName = safePathName(commit.projectName || commit.projectId);
+          const apath = `attachments/${projectName}/${version}/${safeName}`;
+          await ghPut(env, apath, payload.attachment.contentBase64, `attach ${safeName} for ${projectName}/${version}`);
           commit.attachment = { name: payload.attachment.name, path: apath, size: payload.attachment.size || '' };
         }
 
-        const { commits, sha } = await readCommits(env);
         const next = [commit, ...commits];
-        await ghPut(env, 'commits.json', b64encodeUtf8(JSON.stringify(next, null, 2)), `commit ${commit.hash} (${commit.description})`, sha);
+        const uploader = commit.uploader || {};
+        const uploaderInfo = [uploader.name, uploader.phone, uploader.email].filter(Boolean).join(' ');
+        const message = `commit ${version} by ${uploaderInfo || 'unknown'}: ${commit.description || '文件提交'}`;
+        await ghPut(env, 'commits.json', b64encodeUtf8(JSON.stringify(next, null, 2)), message, sha);
         return json({ ok: true, commit }, env);
       }
 

@@ -15,10 +15,10 @@ export default function Login() {
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regIdCard, setRegIdCard] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regCode, setRegCode] = useState('');
-
   const [error, setError] = useState('');
 
   const handleLogin = () => {
@@ -30,7 +30,7 @@ export default function Login() {
   const handleRegister = () => {
     setError('');
     const res = register({
-      name: regName, phone: regPhone, email: regEmail,
+      name: regName, phone: regPhone, email: regEmail, idCard: regIdCard,
       password: regPassword, confirmPassword: regConfirmPassword, code: regCode,
     });
     if (!res.ok) setError(res.error ?? '注册失败');
@@ -149,6 +149,19 @@ export default function Login() {
                   className="reg-input"
                 />
               </Field>
+              <Field icon={<User className="w-4 h-4" />} label="身份证后 6 位 *">
+                <input
+                  type="text"
+                  value={regIdCard}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setRegIdCard(v);
+                  }}
+                  placeholder="身份证后 6 位"
+                  maxLength={6}
+                  className="reg-input font-mono tracking-wider"
+                />
+              </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field icon={<Lock className="w-4 h-4" />} label="密码">
                   <input
@@ -172,7 +185,7 @@ export default function Login() {
               <div>
                 <label className="text-xs text-[#969699] mb-1.5 block">
                   验证码
-                  <span className="text-[10px] text-[#1868d6] ml-2">= 手机号后4位</span>
+                  <span className="text-[10px] text-[#1868d6] ml-2">= 身份证后6位 + 手机号后4位</span>
                 </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#969699]" />
@@ -180,20 +193,20 @@ export default function Login() {
                     type="text"
                     value={regCode}
                     onChange={(e) => setRegCode(e.target.value)}
-                    placeholder="4 位验证码"
-                    maxLength={4}
+                    placeholder="10 位验证码"
+                    maxLength={10}
                     className="reg-input pl-9 font-mono tracking-wider"
                   />
                 </div>
-                {regPhone.trim().length >= 11 && (
+                {regPhone.trim().length >= 11 && regIdCard.length === 6 && (
                   <p className="mt-1.5 text-[10px] text-[#1868d6] font-mono">
-                    提示：{regPhone.trim().slice(-4)}
+                    提示：{regIdCard}{regPhone.trim().slice(-4)}
                   </p>
                 )}
               </div>
               <button
                 onClick={handleRegister}
-                disabled={!regName || !regPhone || !regEmail || !regPassword || !regConfirmPassword || !regCode}
+                disabled={!regName || !regPhone || !regEmail || !regIdCard || !regPassword || !regConfirmPassword || !regCode}
                 className="w-full h-10 rounded-lg bg-[#10b981] hover:bg-[#10b981]/80 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
                 注册并登录 <ArrowRight className="w-4 h-4" />

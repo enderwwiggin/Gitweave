@@ -87,21 +87,21 @@ export default function GitGraph() {
   };
 
   const handleCreate = async () => {
-    if (!fProject || !fFile.trim() || !fMessage.trim()) return;
+    if (!fProject || !fFile.trim()) return;
     const uploader = users.find((u) => u.id === user?.id) ?? users[0];
     const history = commits.filter((c) => c.projectId === fProject && c.filename === fFile.trim());
     const parent = history[0] ?? null;
     const proj = projects.find((p) => p.id === fProject);
     const commit: FileVersion = {
       id: `cm-${Date.now()}`,
-      version: `v${history.length + 1}`,
+      version: `v0.0.${history.length + 1}`,
       filename: fFile.trim(),
       projectId: fProject,
       projectName: proj?.name,
       projectDescription: proj?.description,
       uploader,
-      description: fMessage.trim(),
-      diff: fDiff.trim() || fMessage.trim(),
+      description: fMessage.trim() || '文件提交',
+      diff: fDiff.trim() || (fMessage.trim() || '文件提交'),
       timestamp: new Date().toLocaleString('sv').slice(0, 16),
       size: fSize.trim() || '—',
       hash: Array.from({ length: 7 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''),
@@ -451,13 +451,13 @@ export default function GitGraph() {
                   className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
               </div>
               <div>
-                <label className="text-xs text-[#969699] mb-1 block">提交说明 *</label>
-                <input type="text" value={fMessage} onChange={(e) => setFMessage(e.target.value)} placeholder="本次提交做了什么"
+                <label className="text-xs text-[#969699] mb-1 block">提交说明（可选）</label>
+                <input type="text" value={fMessage} onChange={(e) => setFMessage(e.target.value)} placeholder="简要描述本次提交（可选）"
                   className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50" />
               </div>
               <div>
                 <label className="text-xs text-[#969699] mb-1 block">变更详情（可选）</label>
-                <textarea value={fDiff} onChange={(e) => setFDiff(e.target.value)} rows={2} placeholder="+ 新增...&#10;- 移除..."
+                <textarea value={fDiff} onChange={(e) => setFDiff(e.target.value)} rows={2} placeholder="可将 Agent 跑完后的变更报告粘贴至此..."
                   className="w-full px-3 py-2 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50 resize-none font-mono" />
               </div>
               <div>
@@ -472,7 +472,7 @@ export default function GitGraph() {
             <div className="flex gap-2 mt-5">
               <button onClick={() => setShowModal(false)} disabled={submitting}
                 className="flex-1 h-9 rounded border border-[#1f1f22] text-sm text-[#969699] hover:text-[#f4f4f5] hover:border-[#969699]/40 transition-colors disabled:opacity-40">取消</button>
-              <button onClick={handleCreate} disabled={!fProject || !fFile.trim() || !fMessage.trim() || submitting}
+              <button onClick={handleCreate} disabled={!fProject || !fFile.trim() || submitting}
                 className="flex-1 h-9 rounded bg-[#1868d6] hover:bg-[#1868d6]/80 disabled:opacity-40 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1">
                 {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />提交中...</> : '提交'}
               </button>
