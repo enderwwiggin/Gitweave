@@ -483,7 +483,7 @@ export default function KanbanBoard() {
                   <select value={npLead} onChange={(e) => setNpLead(e.target.value)}
                     className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50">
                     <option value="">选择负责人...</option>
-                    {users.map((m) => <option key={m.id} value={m.id}>{m.name}（{m.role}）</option>)}
+                    {users.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </div>
                 <div>
