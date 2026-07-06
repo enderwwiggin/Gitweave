@@ -122,10 +122,11 @@ function ReassignModal({ task, onClose, onReassign, allMembers }: {
   );
 }
 
-function TaskEditModal({ task, onClose, onDelete }: { task: Task; onClose: () => void; onDelete?: () => void }) {
+function TaskEditModal({ task, onClose, onDelete, projects }: { task: Task; onClose: () => void; onDelete?: () => void; projects: { id: string; name: string }[] }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [tagsInput, setTagsInput] = useState(task.tags.join(', '));
+  const [projectId, setProjectId] = useState(task.projectId);
   const { userId, isAdmin } = usePermission();
   const isOwner = task.assignee.id === userId || task.editors.includes(userId);
   const canEdit = isAdmin || isOwner;
@@ -147,6 +148,7 @@ function TaskEditModal({ task, onClose, onDelete }: { task: Task; onClose: () =>
       title: title.trim() || task.title,
       description: description.trim(),
       tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
+      projectId,
     };
     window.dispatchEvent(new CustomEvent('task-edit', { detail }));
     onClose();
@@ -166,6 +168,13 @@ function TaskEditModal({ task, onClose, onDelete }: { task: Task; onClose: () =>
             <label className="text-xs text-[#969699] mb-1.5 block">任务标题</label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
               className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50" />
+          </div>
+          <div>
+            <label className="text-xs text-[#969699] mb-1.5 block">所属项目</label>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}
+              className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#10b981]/50">
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
           <div>
             <label className="text-xs text-[#969699] mb-1.5 block">任务描述</label>
@@ -272,7 +281,7 @@ function TaskCard({ task, index, onDragStart, onReassign, allMembers, onDeleteTa
         document.body
       )}
       {showEdit && createPortal(
-        <TaskEditModal task={task} onClose={() => setShowEdit(false)} onDelete={() => onDeleteTask?.(task.id)} />,
+        <TaskEditModal task={task} onClose={() => setShowEdit(false)} onDelete={() => onDeleteTask?.(task.id)} projects={projects} />,
         document.body
       )}
     </>
@@ -349,15 +358,14 @@ export default function KanbanBoard() {
   const handleDeleteTask = (taskId: string) => {
     setTaskList((prev) => prev.filter((t) => t.id !== taskId));
   };
-
   // 监听 TaskEditModal 发出的编辑事件
   useEffect(() => {
     const onEdit = (e: Event) => {
-      const { taskId, title, description, tags } = (e as CustomEvent).detail as {
-        taskId: string; title: string; description: string; tags: string[];
+      const { taskId, title, description, tags, projectId: newProjectId } = (e as CustomEvent).detail as {
+        taskId: string; title: string; description: string; tags: string[]; projectId?: string;
       };
       setTaskList((prev) => prev.map((t) =>
-        t.id === taskId ? { ...t, title, description, tags, updatedAt: '2026-07-01' } : t
+        t.id === taskId ? { ...t, title, description, tags, projectId: newProjectId || t.projectId, updatedAt: '2026-07-01' } : t
       ));
     };
     window.addEventListener('task-edit', onEdit);
