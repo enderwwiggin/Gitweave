@@ -73,10 +73,10 @@ export const teamMembers: TeamMember[] = [
     phone: '13800000018', password: 'zhangke',
   },
   {
-    id: 'm9', name: '伟森浩', avatar: '/team-avatars.png',
-    role: '硬件工程师', initials: 'WS', color: '#14b8a6',
+    id: 'm9', name: '韦森仓', avatar: '/team-avatars.png',
+    role: '硬件工程师', initials: 'WC', color: '#14b8a6',
     userRole: 'member', status: 'active', joinedAt: '2026-04-01',
-    phone: '13800000019', password: 'weisenhao',
+    phone: '13800000019', password: 'weizencang',
   },
 
 ];
