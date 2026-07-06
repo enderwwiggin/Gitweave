@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  LayoutDashboard, GitBranch, KanbanSquare, AlertCircle,
+  LayoutDashboard, KanbanSquare, AlertCircle,
   Users, ChevronLeft, ChevronRight, Sparkles,
-  FolderKanban, ArrowRightLeft, Shield, Upload,
+  FolderKanban, ArrowRightLeft, Shield, FolderOpen,
 } from 'lucide-react';
 import {
   teamMembers, tasks, issues, getProjectColor,
@@ -10,7 +10,6 @@ import {
 import type { TeamMember } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
-import GitGraph from './GitGraph';
 import KanbanBoard from './KanbanBoard';
 import IssueTracker from './IssueTracker';
 import AgentExperience from './AgentExperience';
@@ -21,11 +20,10 @@ import TodoList from './TodoList';
 
 const sidebarItems = [
   { id: 'overview', label: '概览', icon: LayoutDashboard },
-  { id: 'git', label: '代码提交', icon: GitBranch },
   { id: 'board', label: '项目看板', icon: KanbanSquare },
   { id: 'issues', label: '问题追踪', icon: AlertCircle },
   { id: 'transfers', label: '移交轨迹', icon: ArrowRightLeft },
-  { id: 'code', label: '版本控制', icon: Upload },
+  { id: 'code', label: '项目文件上传', icon: FolderOpen },
   { id: 'agent', label: 'Agent心得', icon: Sparkles },
   { id: 'team', label: '团队成员', icon: Users },
   { id: 'admin', label: '管理控制台', icon: Shield },
@@ -233,11 +231,10 @@ export default function Dashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'git': return <GitGraph />;
+      case 'code': return <CodeVersion />;
       case 'board': return <KanbanBoard />;
       case 'issues': return <IssueTracker />;
       case 'transfers': return <TransferGraph />;
-      case 'code': return <CodeVersion />;
       case 'agent': return <AgentExperience />;
       case 'team': return <TeamView />;
       case 'admin': return <AdminPanel />;

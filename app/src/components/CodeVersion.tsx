@@ -134,7 +134,7 @@ export default function CodeVersion() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <GitCommit className="w-5 h-5 text-[#1868d6]" />
-          <h2 className="text-xl font-semibold text-[#f4f4f5]">代码版本控制</h2>
+          <h2 className="text-xl font-semibold text-[#f4f4f5]">项目文件上传</h2>
           <span className="text-xs font-mono text-[#969699] bg-[#1f1f22] px-2 py-1 rounded-full">
             {filtered.length} 版本
           </span>
@@ -146,7 +146,7 @@ export default function CodeVersion() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1868d6] hover:bg-[#1868d6]/80 text-white text-sm font-medium transition-colors"
             >
               <Upload className="w-4 h-4" />
-              上传新版本
+              上传项目文件
             </button>
           )}
         </div>
@@ -159,7 +159,7 @@ export default function CodeVersion() {
       {/* Upload Form */}
       {uploadForm && isAdmin && (
         <div className="glass-panel rounded-lg p-5 mb-4 fade-in-up">
-          <h3 className="text-sm font-medium text-[#f4f4f5] mb-4">上传新版本</h3>
+          <h3 className="text-sm font-medium text-[#f4f4f5] mb-4">上传项目文件</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-[#969699] mb-1.5 block">所属项目 *</label>
