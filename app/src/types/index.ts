@@ -86,6 +86,7 @@ export interface Project {
   description: string;
   status: 'active' | 'paused' | 'completed';
   lead: TeamMember;
+  category?: string; // 所属类别
   members: TeamMember[];
   startDate: string;
   endDate?: string;

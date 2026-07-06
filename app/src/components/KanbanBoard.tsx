@@ -292,7 +292,12 @@ export default function KanbanBoard() {
   const { users, user } = useAuth();
   const { projects, addProject, removeProject } = useProjects();
   const isAdmin = user?.userRole === 'admin';
-  const [taskList, setTaskList] = useState<Task[]>(initialTasks);
+  const [taskList, setTaskList] = useState<Task[]>(() => {
+    try {
+      const saved = localStorage.getItem('gitweave_tasklist');
+      return saved ? (JSON.parse(saved) as Task[]) : initialTasks;
+    } catch { return initialTasks; }
+  });
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string | null>(null);
@@ -301,6 +306,7 @@ export default function KanbanBoard() {
   const [npName, setNpName] = useState('');
   const [npDesc, setNpDesc] = useState('');
   const [npLead, setNpLead] = useState('');
+  const [npCategory, setNpCategory] = useState('');
   const [npBusy, setNpBusy] = useState(false);
   const [projError, setProjError] = useState<string | null>(null);
 
@@ -335,9 +341,9 @@ export default function KanbanBoard() {
     setNpBusy(true);
     setProjError(null);
     try {
-      await addProject(npName, npDesc, npLead);
+      await addProject(npName, npDesc, npLead, npCategory);
       setShowAddProject(false);
-      setNpName(''); setNpDesc(''); setNpLead('');
+      setNpName(''); setNpDesc(''); setNpLead(''); setNpCategory('');
     } catch (e) {
       setProjError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -371,6 +377,11 @@ export default function KanbanBoard() {
     window.addEventListener('task-edit', onEdit);
     return () => window.removeEventListener('task-edit', onEdit);
   }, []);
+
+  // 持久化任务列表到 localStorage（拖拽/编辑后不丢失）
+  useEffect(() => {
+    try { localStorage.setItem('gitweave_tasklist', JSON.stringify(taskList)); } catch { /* ignore */ }
+  }, [taskList]);
   const filteredTasks = taskList.filter((t) => {
     const matchesProject = !filterProject || t.projectId === filterProject;
     const matchesMember = !filterMember || t.assignee.id === filterMember;
@@ -568,6 +579,14 @@ export default function KanbanBoard() {
                     className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50">
                     <option value="">选择负责人...</option>
                     {users.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-[#969699] mb-1 block">所属类别</label>
+                  <select value={npCategory} onChange={(e) => setNpCategory(e.target.value)}
+                    className="w-full h-9 px-3 rounded bg-[#050507] border border-[#1f1f22] text-sm text-[#f4f4f5] focus:outline-none focus:border-[#1868d6]/50">
+                    <option value="">选择类别（可选）</option>
+                    {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div>

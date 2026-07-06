@@ -8,7 +8,7 @@ interface ProjectsContextValue {
   projects: Project[];
   loading: boolean;
   error: string | null;
-  addProject: (name: string, description: string, leadId: string) => Promise<void>;
+  addProject: (name: string, description: string, leadId: string, category?: string) => Promise<void>;
   removeProject: (id: string) => Promise<void>;
   reload: () => void;
 }
@@ -46,7 +46,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [added, removedIds],
   );
 
-  const addProject = async (name: string, description: string, leadId: string) => {
+  const addProject = async (name: string, description: string, leadId: string, category?: string) => {
     const lead = users.find((u) => u.id === leadId) ?? users[0];
     const creds = { name: user?.name ?? '', password: lead.password ?? '' };
     const project: Project = {
@@ -55,6 +55,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       description: description.trim(),
       status: 'active',
       lead,
+      category: category || undefined,
       members: [lead],
       startDate: new Date().toLocaleString('sv').slice(0, 10),
     };
