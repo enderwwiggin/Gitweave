@@ -126,9 +126,23 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
           return (
             <div key={p.id} className="glass-panel rounded-lg p-4 fade-in-up cursor-pointer hover:border-[#1868d6]/30 transition-colors"
               style={{ animationDelay: `${i * 80}ms` }} onClick={() => onNavigate('board')}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getProjectColor(p.id) }} />
-                <h3 className="text-sm font-semibold text-[#f4f4f5]">{p.name}</h3>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getProjectColor(p.id) }} />
+                  <h3 className="text-sm font-semibold text-[#f4f4f5]">{p.name}</h3>
+                </div>
+                <div className="flex items-center -space-x-2">
+                  {[p.lead, ...p.members.filter((m) => m.id !== p.lead.id)].map((member) => (
+                    <div
+                      key={member.id}
+                      className="w-8 h-8 rounded-full border-2 border-[#050507] flex items-center justify-center text-xs font-medium text-white"
+                      style={{ backgroundColor: member.color }}
+                      title={member.name}
+                    >
+                      {member.initials}
+                    </div>
+                  ))}
+                </div>
               </div>
               <p className="text-xs text-[#969699] mb-3 line-clamp-1">{p.description}</p>
               <div className="grid grid-cols-3 gap-2 text-center">

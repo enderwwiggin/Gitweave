@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { issues as initialIssues, getProjectColor } from '@/data/mockData';
+import { getProjectColor } from '@/data/mockData';
 import type { Issue, AssignmentHistory } from '@/types';
 import { useProjects } from '@/hooks/useProjects';
 
@@ -71,15 +71,35 @@ function TransferTimeline({ history }: { history: AssignmentHistory[] }) {
 }
 
 export default function IssueTracker() {
-  const [issueList] = useState<Issue[]>(initialIssues);
   const { projects } = useProjects();
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [filterProject, setFilterProject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const allIssues = useMemo<Issue[]>(() => {
+    return projects.flatMap((project) => {
+      const list = project.issues;
+      if (!list || list.length === 0) return [];
+      return list.map((issue, index): Issue => ({
+        id: `${project.id}-issue-${index}`,
+        projectId: project.id,
+        title: `${project.name} - ${issue}`,
+        description: issue,
+        solution: '',
+        status: 'open',
+        priority: 'P2',
+        reporter: project.lead,
+        assignee: project.lead,
+        createdAt: project.startDate,
+        tags: ['项目问题'],
+        transferHistory: [],
+      }));
+    });
+  }, [projects]);
+
   const filtered = useMemo(() => {
-    return issueList.filter((issue) => {
+    return allIssues.filter((issue) => {
       const matchesFilter = filter === 'all' || issue.status === filter;
       const matchesProject = !filterProject || issue.projectId === filterProject;
       const matchesSearch =
@@ -88,7 +108,7 @@ export default function IssueTracker() {
         issue.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesFilter && matchesProject && matchesSearch;
     });
-  }, [issueList, filter, filterProject, searchQuery]);
+  }, [allIssues, filter, filterProject, searchQuery]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -143,7 +163,7 @@ export default function IssueTracker() {
             {status === 'closed' && <XCircle className="w-3.5 h-3.5" />}
             {status === 'all' ? '全部' : getStatusLabel(status)}
             <span className="font-mono text-xs opacity-60">
-              {issueList.filter((i) => status === 'all' ? true : i.status === status).length}
+              {allIssues.filter((i) => status === 'all' ? true : i.status === status).length}
             </span>
           </button>
         ))}

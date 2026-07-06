@@ -89,6 +89,8 @@ export interface Project {
   members: TeamMember[];
   startDate: string;
   endDate?: string;
+  issues?: string[];
+
 }
 
 // ============================================================

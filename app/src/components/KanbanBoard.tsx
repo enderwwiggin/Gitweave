@@ -9,7 +9,7 @@ import {
 } from '@/data/mockData';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
-import type { Task, AssignmentHistory, TeamMember } from '@/types';
+import type { Task, AssignmentHistory, TeamMember, Project } from '@/types';
 import { useProjects } from '@/hooks/useProjects';
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
@@ -295,6 +295,32 @@ export default function KanbanBoard() {
   const [npBusy, setNpBusy] = useState(false);
   const [projError, setProjError] = useState<string | null>(null);
 
+  const [projectIssues, setProjectIssues] = useState<Record<string, string[]>>({});
+  const selectedProject = filterProject ? projects.find((p) => p.id === filterProject) : null;
+  const currentIssues = selectedProject
+    ? projectIssues[selectedProject.id] ?? selectedProject.issues ?? []
+    : [];
+  const handleIssueChange = (projectId: string, value: string) => {
+    const lines = value.split('\n').map((s) => s.trim()).filter(Boolean);
+    setProjectIssues((prev) => ({ ...prev, [projectId]: lines }));
+  };
+
+  const statusBadge = (status: Project['status']) => {
+    const map: Record<Project['status'], { text: string; color: string }> = {
+      active: { text: '进行中', color: '#10b981' },
+      paused: { text: '已暂停', color: '#f59e0b' },
+      completed: { text: '已完成', color: '#969699' },
+    };
+    return (
+      <span
+        className="text-[10px] px-1.5 py-0.5 rounded-full border"
+        style={{ color: map[status].color, borderColor: `${map[status].color}40` }}
+      >
+        {map[status].text}
+      </span>
+    );
+  };
+
   const handleAddProject = async () => {
     if (!npName.trim() || !npLead) return;
     setNpBusy(true);
@@ -438,6 +464,43 @@ export default function KanbanBoard() {
           <button onClick={() => setProjError(null)}><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
+
+      {/* Project info */}
+      {selectedProject && (
+        <div className="mb-4 rounded-lg border border-[#1f1f22] bg-[#111113]/50 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FolderKanban className="w-4 h-4 text-[#1868d6]" />
+              <h3 className="text-sm font-semibold text-[#f4f4f5]">{selectedProject.name}</h3>
+              {statusBadge(selectedProject.status)}
+            </div>
+            <span className="text-xs text-[#969699]">负责人：{selectedProject.lead.name}</span>
+          </div>
+          <p className="text-xs text-[#969699] mb-3">{selectedProject.description}</p>
+          <div>
+            <label className="text-xs text-[#969699] mb-1 block">问题描述</label>
+            <textarea
+              value={currentIssues.join('\n')}
+              onChange={(e) => handleIssueChange(selectedProject.id, e.target.value)}
+              placeholder="每行一条问题描述..."
+              className="w-full min-h-[80px] px-3 py-2 rounded bg-[#050507] border border-[#1f1f22] text-xs text-[#f4f4f5] placeholder-[#969699] focus:outline-none focus:border-[#1868d6]/50 resize-y"
+            />
+            {currentIssues.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {currentIssues.map((issue, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[10px] px-2 py-0.5 rounded bg-[#1868d6]/10 text-[#1868d6] border border-[#1868d6]/20"
+                  >
+                    {issue}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Kanban columns */}
       <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
