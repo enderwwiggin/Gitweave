@@ -10,3 +10,8 @@ ALLOW_ORIGIN = "https://enderwwiggin.github.io"
 # 机密（不要写在这里！用命令行设置）：
 #   npx wrangler secret put GITHUB_TOKEN
 #   npx wrangler secret put ADMIN_PASSPHRASE
+
+# R2 存储桶 — 附件文件存这里（不限量 + 零出站费）
+[[r2_buckets]]
+bucket_name = "gitweave-attachments"
+binding = "ATTACHMENTS"

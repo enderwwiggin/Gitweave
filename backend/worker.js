@@ -218,18 +218,13 @@ export default {
         if (!commit || !commit.id) return json({ error: '缺少 commit 数据' }, env, 400);
 
         // 先读取 commits.json，以便按项目生成版本号
-        const { commits } = await readCommits(env);
+        const { commits, sha } = await readCommits(env);
         const version = nextProjectVersion(commits, commit.projectId);
         commit.version = version;
 
-        // 构建要写入的文件列表
-        const files = [];
-
-        // 附件：整个项目文件夹，按 attachments/项目名/版本号/相对路径 存放
-        // 前端发送 payload.files = [{ relativePath, contentBase64, size }]
+        // 附件：上传到 R2（不限量，零出站费）
         const projectName = safePathName(commit.projectName || commit.projectId);
         const incoming = Array.isArray(payload.files) ? payload.files : [];
-        // 兼容旧的单文件字段
         if (payload.attachment && payload.attachment.contentBase64) {
           incoming.push({ relativePath: payload.attachment.name, contentBase64: payload.attachment.contentBase64, size: payload.attachment.size });
         }
@@ -240,20 +235,19 @@ export default {
             .split('/')
             .map((seg) => safePathName(seg))
             .join('/');
-          const apath = `attachments/${projectName}/${version}/${rel}`;
-          files.push({ path: apath, contentBase64: f.contentBase64 });
-          attachments.push({ name: f.relativePath || f.name || rel, path: apath, size: f.size || '' });
+          const key = `attachments/${projectName}/${version}/${rel}`;
+          const bin = Uint8Array.from(atob(f.contentBase64), (c) => c.charCodeAt(0));
+          await env.ATTACHMENTS.put(key, bin);
+          attachments.push({ name: f.relativePath || f.name || rel, path: key, size: f.size || '' });
         }
         if (attachments.length) commit.attachments = attachments;
 
-        // commits.json
+        // 只写 commits.json 到 GitHub（附件已存 R2）
         const next = [commit, ...commits];
-        files.push({ path: 'commits.json', contentBase64: b64encodeUtf8(JSON.stringify(next, null, 2)) });
-
         const uploader = commit.uploader || {};
         const uploaderInfo = [uploader.name, uploader.phone, uploader.email].filter(Boolean).join(' ');
         const message = `commit ${version} by ${uploaderInfo || 'unknown'}: ${commit.description || '文件提交'}`;
-        await ghBatchCommit(env, files, message);
+        await ghPut(env, 'commits.json', b64encodeUtf8(JSON.stringify(next, null, 2)), message, sha);
         return json({ ok: true, commit }, env);
       }
 
@@ -264,22 +258,30 @@ export default {
         }
         const id = decodeURIComponent(pathname.split('/').pop());
         const { commits, sha } = await readCommits(env);
+        const target = commits.find((c) => c.id === id);
+        // 清理 R2 中的附件
+        if (target && target.attachments) {
+          for (const att of target.attachments) {
+            try { await env.ATTACHMENTS.delete(att.path); } catch { /* R2 delete best-effort */ }
+          }
+        }
         const next = commits.filter((c) => c.id !== id);
         await ghPut(env, 'commits.json', b64encodeUtf8(JSON.stringify(next, null, 2)), `delete commit ${id}`, sha);
         return json({ ok: true }, env);
       }
 
       // 下载附件（读取，Worker 用令牌代理私有仓库文件）
+      // 下载附件（从 R2 读取，零出站费）
       if (pathname.startsWith('/api/attachments/') && request.method === 'GET') {
-        const apath = pathname.replace('/api/', '');
-        const file = await ghGet(env, apath);
-        if (!file) return json({ error: '附件不存在' }, env, 404);
-        const bytes = Uint8Array.from(atob(file.content.replace(/\n/g, '')), (c) => c.charCodeAt(0));
-        const name = apath.split('/').pop();
-        return new Response(bytes, {
+        const key = pathname.replace('/api/', '');
+        const obj = await env.ATTACHMENTS.get(key);
+        if (!obj) return json({ error: '附件不存在' }, env, 404);
+        const name = key.split('/').pop();
+        return new Response(obj.body, {
           headers: {
-            'Content-Type': 'application/octet-stream',
-            'Content-Disposition': `attachment; filename="${encodeURIComponent(name)}"`,
+            'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(name || 'file')}"`,
+            'Cache-Control': 'public, max-age=31536000',
             ...cors(env),
           },
         });
