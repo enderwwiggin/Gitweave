@@ -45,11 +45,59 @@ export interface FolderFilePayload {
   contentBase64: string;
 }
 
-export async function createCommit(commit: FileVersion, creds: AuthCreds, files?: FolderFilePayload[]): Promise<FileVersion> {
+// 计算项目下一个版本号（与 Worker 逻辑一致）
+function nextProjectVersion(commits: FileVersion[], projectId: string): string {
+  const versions = commits
+    .filter((c) => c.projectId === projectId)
+    .map((c) => {
+      const m = String(c.version || '').match(/v0\.0\.(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    });
+  const max = versions.length ? Math.max(...versions) : 0;
+  return `v0.0.${max + 1}`;
+}
+
+export async function createCommit(
+  commit: FileVersion,
+  creds: AuthCreds,
+  files?: FolderFilePayload[],
+  existingCommits?: FileVersion[],
+): Promise<FileVersion> {
+  // 先算版本号，逐文件上传到 R2（避免大请求体超 Worker CPU 限制）
+  const version = nextProjectVersion(existingCommits ?? [], commit.projectId);
+  const projectName = commit.projectName || commit.projectId;
+
+  const uploadedFiles: { relativePath: string; size: string }[] = [];
+  if (files && files.length > 0) {
+    // 并发上传，限制并发数避免请求堆积
+    const CONCURRENCY = 4;
+    for (let i = 0; i < files.length; i += CONCURRENCY) {
+      const batch = files.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(batch.map(async (f) => {
+        const res = await fetch(`${backendUrl()}/api/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(creds) },
+          body: JSON.stringify({
+            projectName,
+            version,
+            relativePath: f.relativePath,
+            contentBase64: f.contentBase64,
+            size: f.size,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `文件上传失败: ${res.status}`);
+        return { relativePath: f.relativePath, size: f.size } satisfies { relativePath: string; size: string };
+      }));
+      uploadedFiles.push(...results);
+    }
+  }
+
+  // 提交元数据（文件已上传，只传路径/大小）
   const res = await fetch(`${backendUrl()}/api/commits`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(creds) },
-    body: JSON.stringify({ commit, files }),
+    body: JSON.stringify({ commit, files: uploadedFiles }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `提交失败: ${res.status}`);

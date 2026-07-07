@@ -210,8 +210,8 @@ export default {
 
       // 新建提交（管理员）
       if (pathname === '/api/commits' && request.method === 'POST') {
-        if (!isAdmin(env, request)) {
-          return json({ error: '无权限：请用管理员账号登录后再提交' }, env, 401);
+        if (!isMember(env, request)) {
+          return json({ error: '无权限：请登录后再提交' }, env, 401);
         }
         const payload = await request.json();
         const commit = payload.commit;
@@ -222,24 +222,18 @@ export default {
         const version = nextProjectVersion(commits, commit.projectId);
         commit.version = version;
 
-        // 附件：上传到 R2（不限量，零出站费）
+        // 附件元数据（文件已通过 /api/upload 逐个上传到 R2）
         const projectName = safePathName(commit.projectName || commit.projectId);
         const incoming = Array.isArray(payload.files) ? payload.files : [];
-        if (payload.attachment && payload.attachment.contentBase64) {
-          incoming.push({ relativePath: payload.attachment.name, contentBase64: payload.attachment.contentBase64, size: payload.attachment.size });
-        }
-        const attachments = [];
-        for (const f of incoming) {
-          if (!f || !f.contentBase64) continue;
-          const rel = String(f.relativePath || f.name || 'file')
-            .split('/')
-            .map((seg) => safePathName(seg))
-            .join('/');
-          const key = `attachments/${projectName}/${version}/${rel}`;
-          const bin = Uint8Array.from(atob(f.contentBase64), (c) => c.charCodeAt(0));
-          await env.ATTACHMENTS.put(key, bin);
-          attachments.push({ name: f.relativePath || f.name || rel, path: key, size: f.size || '' });
-        }
+        const attachments = incoming
+          .filter((f) => f && f.relativePath)
+          .map((f) => {
+            const rel = String(f.relativePath)
+              .split('/')
+              .map((seg) => safePathName(seg))
+              .join('/');
+            return { name: f.relativePath, path: `attachments/${projectName}/${version}/${rel}`, size: f.size || '' };
+          });
         if (attachments.length) commit.attachments = attachments;
 
         // 只写 commits.json 到 GitHub（附件已存 R2）
@@ -285,6 +279,23 @@ export default {
             ...cors(env),
           },
         });
+      }
+      // 逐文件上传到 R2（避免大请求体超 Worker CPU 限制）
+      if (pathname === '/api/upload' && request.method === 'POST') {
+        if (!isMember(env, request)) {
+          return json({ error: '无权限：请登录后再上传' }, env, 401);
+        }
+        const payload = await request.json();
+        const projectName = safePathName(payload.projectName || 'unknown');
+        const version = String(payload.version || 'v0.0.1');
+        const rel = String(payload.relativePath || 'file')
+          .split('/')
+          .map((seg) => safePathName(seg))
+          .join('/');
+        const key = `attachments/${projectName}/${version}/${rel}`;
+        const bin = Uint8Array.from(atob(payload.contentBase64 || ''), (c) => c.charCodeAt(0));
+        await env.ATTACHMENTS.put(key, bin);
+        return json({ ok: true, path: key, name: payload.relativePath || rel, size: payload.size || '' }, env);
       }
 
       // 项目覆盖层（读取，开放）：added=新增项目，removedIds=被移除的预置项目id

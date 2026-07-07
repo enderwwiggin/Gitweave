@@ -117,7 +117,7 @@ export default function CodeVersion() {
     setError(null);
     try {
       const creds = { name: user?.name ?? '', password: users.find((u) => u.id === user?.id)?.password ?? '' };
-      const saved = await createCommit(commit, creds, formFiles);
+      const saved = await createCommit(commit, creds, formFiles, commits);
       setCommits((prev) => [saved, ...prev]); // 用后端返回的版本号/附件路径覆盖本地
       setUploadForm(false);
       setFormFolderName(''); setFormDesc(''); setFormDiff(''); setFormProject('');

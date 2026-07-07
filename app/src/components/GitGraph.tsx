@@ -141,7 +141,7 @@ export default function GitGraph() {
     setSubmitting(true);
     setError(null);
     try {
-      const saved = await createCommit(commit, { name: user?.name ?? '', password: users.find((u) => u.id === user?.id)?.password ?? '' }, fFiles);
+      const saved = await createCommit(commit, { name: user?.name ?? '', password: users.find((u) => u.id === user?.id)?.password ?? '' }, fFiles, commits);
       setCommits((prev) => [saved, ...prev]); // 乐观更新，避免写后读缓存陈旧
       resetForm();
       setShowModal(false);

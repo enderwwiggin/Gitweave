@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, GitBranch, KanbanSquare, AlertCircle,
   Users, ChevronLeft, ChevronRight, Sparkles,
-  FolderKanban, ArrowRightLeft, Shield, FolderOpen,
+  FolderKanban, ArrowRightLeft, Shield, FolderOpen, FileCode, Clock,
 } from 'lucide-react';
 import {
   teamMembers, tasks, issues, getProjectColor,
 } from '@/data/mockData';
-import type { TeamMember } from '@/types';
+import type { TeamMember, FileVersion } from '@/types';
+import { fetchCommits } from '@/lib/backend';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
-import GitGraph from './GitGraph';
 import KanbanBoard from './KanbanBoard';
 import IssueTracker from './IssueTracker';
 import AgentExperience from './AgentExperience';
@@ -108,6 +108,12 @@ function TeamView() {
 function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { projects } = useProjects();
   const [taskFilterProject, setTaskFilterProject] = useState('all');
+  const [recentCommits, setRecentCommits] = useState<FileVersion[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchCommits().then((list) => { if (!cancelled) setRecentCommits(list); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   // 只显示进行中（active）的项目
   const projectStats = projects
     .filter((p) => p.status === 'active')
@@ -162,7 +168,28 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
             </h3>
             <button onClick={() => onNavigate('code')} className="text-xs text-[#1868d6] hover:underline">查看全部</button>
           </div>
-          <div className="h-[calc(100%-44px)] overflow-hidden"><GitGraph /></div>
+          <div className="h-[calc(100%-44px)] overflow-y-auto scrollbar-thin p-2">
+            {recentCommits.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <FileCode className="w-8 h-8 text-[#1f1f22] mb-2" />
+                <p className="text-xs text-[#969699]">暂无提交记录</p>
+              </div>
+            ) : recentCommits.slice(0, 20).map((v) => {
+              const proj = projects.find((p) => p.id === v.projectId);
+              return (
+                <div key={v.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#111113]/50 transition-colors cursor-pointer"
+                  onClick={() => onNavigate('code')}>
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getProjectColor(v.projectId) }} />
+                  <span className="text-xs font-mono text-[#1868d6] bg-[#1868d6]/10 px-1.5 py-0.5 rounded shrink-0">{v.version}</span>
+                  <span className="text-xs text-[#f4f4f5] truncate flex-1" title={v.filename}>{v.filename}</span>
+                  <span className="text-[10px] text-[#969699] shrink-0">{proj?.name || v.projectName || v.projectId}</span>
+                  <span className="text-[10px] text-[#969699] shrink-0 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />{v.timestamp.slice(11)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div className="glass-panel rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1f1f22]">
