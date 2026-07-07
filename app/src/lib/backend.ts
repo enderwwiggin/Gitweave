@@ -129,15 +129,14 @@ export async function readFolderFiles(fileList: FileList | File[]): Promise<{ fi
   if (compressed) {
     return { files: [], error: `禁止上传压缩文件：${compressed.name}。请上传解压后的整个项目文件夹。` };
   }
-  const files: FolderFilePayload[] = [];
-  for (const f of arr) {
+  const files = await Promise.all(arr.map(async (f) => {
     // webkitRelativePath 形如 "项目文件夹/src/main.py"，去掉首层文件夹名保留内部结构
     const rel = (f.webkitRelativePath || f.name).split('/').slice(1).join('/') || f.name;
-    files.push({
+    return {
       relativePath: rel,
       size: `${Math.max(1, Math.round(f.size / 1024))}KB`,
       contentBase64: await fileToBase64(f),
-    });
-  }
+    } satisfies FolderFilePayload;
+  }));
   return { files };
 }
