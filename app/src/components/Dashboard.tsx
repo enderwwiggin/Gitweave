@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  LayoutDashboard, KanbanSquare, AlertCircle,
+  LayoutDashboard, GitBranch, KanbanSquare, AlertCircle,
   Users, ChevronLeft, ChevronRight, Sparkles,
   FolderKanban, ArrowRightLeft, Shield, FolderOpen,
 } from 'lucide-react';
@@ -10,6 +10,7 @@ import {
 import type { TeamMember } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
+import GitGraph from './GitGraph';
 import KanbanBoard from './KanbanBoard';
 import IssueTracker from './IssueTracker';
 import AgentExperience from './AgentExperience';
@@ -159,7 +160,7 @@ function OverviewView({ onNavigate }: { onNavigate: (tab: string) => void }) {
             <h3 className="text-sm font-medium text-[#f4f4f5] flex items-center gap-2">
               <GitBranch className="w-4 h-4 text-[#1868d6]" />最新提交
             </h3>
-            <button onClick={() => onNavigate('git')} className="text-xs text-[#1868d6] hover:underline">查看全部</button>
+            <button onClick={() => onNavigate('code')} className="text-xs text-[#1868d6] hover:underline">查看全部</button>
           </div>
           <div className="h-[calc(100%-44px)] overflow-hidden"><GitGraph /></div>
         </div>
